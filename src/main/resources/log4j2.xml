@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN">
+	<Appenders>
+		<Console name="ConsoleAppender" target="SYSTEM_OUT">
+			<PatternLayout
+					pattern="%d [%t] %-5level %logger{36} - %msg%n%throwable"/>
+		</Console>
+	</Appenders>
+	<Loggers>
+		<Logger name="org.example" additivity="false" level="debug">
+			<AppenderRef ref="ConsoleAppender"/>
+		</Logger>
+		<Logger name="carrier" additivity="false" level="debug">
+			<AppenderRef ref="ConsoleAppender"/>
+		</Logger>
+		<Logger name="org.springframework.web" additivity="false" level="debug">
+			<AppenderRef ref="ConsoleAppender"/>
+		</Logger>
+		<Root level="INFO">
+			<AppenderRef ref="ConsoleAppender"/>
+		</Root>
+	</Loggers>
+</Configuration>

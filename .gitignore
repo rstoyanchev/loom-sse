@@ -1,0 +1,20 @@
+/build
+buildSrc/build
+/spring-*/build
+/platform/build
+node_modules/
+.full-build
+
+/**/src/**/generated
+.gradle
+.idea/*
+!.idea/icon.svg
+out
+*.iml
+.DS_Store
+
+# eclipse
+.classpath
+.project
+.settings/
+bin/

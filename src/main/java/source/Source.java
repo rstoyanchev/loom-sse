@@ -1,5 +1,7 @@
 package source;
 
+import java.time.Duration;
+
 import carrier.ClosedException;
 import org.jspecify.annotations.Nullable;
 
@@ -24,49 +26,23 @@ public interface Source<T> extends AutoCloseable {
 	@Nullable T receive() throws ClosedException, InterruptedException;
 
 	/**
+	 * Receive the next item, blocking if necessary for the given duration.
+	 * @return the item, or {@code null} if no items were received before timeout,
+	 * or the Source was closed.
+	 */
+	T receive(Duration timeout) throws ClosedException, InterruptedException;
+
+	/**
+	 * Try to receive an item.
+	 * @return the item, or {@code null} if there are no items at this time,
+	 * or the Source is closed.
+	 */
+	@Nullable T tryReceive();
+
+	/**
 	 * Close the Source from the receiving side.
 	 */
 	@Override
 	void close();
 
-
-	/**
-	 *
-	 * @return
-	 */
-	default Producer<T> asProducer() {
-		return sink -> {
-			try (this) {
-				while (true) {
-					if (isClosed()) {
-						Throwable cause = getCompletionException();
-						if (cause != null) {
-							sink.completeExceptionally(cause);
-						}
-						else {
-							sink.complete();
-						}
-						break;
-					}
-					else if (sink.isComplete()) {
-						close();
-						break;
-					}
-					else {
-						T item = null;
-						try {
-							item = receive();
-							sink.send(item);
-						}
-						catch (ClosedException ex) {
-							if (item != null) {
-								// discarded item
-							}
-							break;
-						}
-					}
-				}
-			}
-		};
-	}
 }

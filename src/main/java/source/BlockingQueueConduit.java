@@ -47,15 +47,17 @@ public class BlockingQueueConduit<T> implements Conduit<T> {
 
 	@Override
 	public void complete() {
-		if (this.completion != null) {
-			this.completion = Boolean.TRUE;
-		}
+		complete(Boolean.TRUE);
 	}
 
 	@Override
 	public void completeExceptionally(Throwable cause) {
-		if (this.completion != null) {
-			this.completion = (cause != null ? cause : Boolean.TRUE);
+		complete(cause != null ? cause : Boolean.TRUE);
+	}
+
+	private void complete(Object completion) {
+		if (this.completion == null) {
+			this.completion = completion;
 		}
 	}
 
@@ -78,7 +80,7 @@ public class BlockingQueueConduit<T> implements Conduit<T> {
 	@Override
 	public T receive(Duration timeout) throws ClosedException, InterruptedException {
 		assertNotClosed();
-		T item = this.queue.poll(timeout.getNano(), TimeUnit.NANOSECONDS);
+		T item = this.queue.poll(TimeUnit.MILLISECONDS.convert(timeout), TimeUnit.MILLISECONDS);
 		closeAfterCompletion();
 		return item;
 	}

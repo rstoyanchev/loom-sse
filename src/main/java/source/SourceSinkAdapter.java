@@ -1,5 +1,7 @@
 package source;
 
+import java.io.IOException;
+
 import carrier.ClosedException;
 
 public class SourceSinkAdapter<T> implements Producer<T> {
@@ -13,6 +15,11 @@ public class SourceSinkAdapter<T> implements Producer<T> {
 
 
 	@Override
+	public String toString() {
+		return "SourceSinkAdapter for " + this.source;
+	}
+
+	@Override
 	public void produce(Sink<T> sink) throws InterruptedException {
 		try (this.source) {
 			while (true) {
@@ -24,7 +31,7 @@ public class SourceSinkAdapter<T> implements Producer<T> {
 					else {
 						sink.complete();
 					}
-					break;
+					return;
 				}
 				else if (sink.isComplete()) {
 					this.source.close();
@@ -34,17 +41,30 @@ public class SourceSinkAdapter<T> implements Producer<T> {
 					T item = null;
 					try {
 						item = this.source.receive();
+						if (item == null) {
+							continue;
+						}
 						sink.send(item);
+					}
+					catch (IOException ex) {
+						sink.completeExceptionally(ex);
+						return;
 					}
 					catch (ClosedException ex) {
 						if (item != null) {
 							// discarded item
 						}
-						break;
+						return;
+					}
+					catch (InterruptedException ex) {
+						sink.completeExceptionally(ex);
+						throw ex;
 					}
 				}
 			}
 		}
+
+
 	}
 
 }

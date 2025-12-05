@@ -1,5 +1,6 @@
 package source;
 
+import java.io.IOException;
 import java.time.Duration;
 
 import carrier.ClosedException;
@@ -23,14 +24,14 @@ public interface Source<T> extends AutoCloseable {
 	 * Receive the next item, blocking if necessary.
 	 * @return the received item, or {@code null} if the Source completed without an item.
 	 */
-	@Nullable T receive() throws ClosedException, InterruptedException;
+	@Nullable T receive() throws IOException, ClosedException, InterruptedException;
 
 	/**
 	 * Receive the next item, blocking if necessary for the given duration.
 	 * @return the item, or {@code null} if no items were received before timeout,
 	 * or the Source was closed.
 	 */
-	T receive(Duration timeout) throws ClosedException, InterruptedException;
+	@Nullable T receive(Duration timeout) throws IOException, ClosedException, InterruptedException;
 
 	/**
 	 * Try to receive an item.

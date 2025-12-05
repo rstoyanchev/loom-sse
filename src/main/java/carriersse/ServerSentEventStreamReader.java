@@ -41,7 +41,7 @@ public class ServerSentEventStreamReader {
 	}
 
 
-	public <T> Carrier<ServerSentEvent<T>> readStream(ClientHttpResponse response) {
+	public <T> Carrier<ServerSentEvent<T>> readStream(ClientHttpResponse response) throws InterruptedException {
 
 		Carrier<ServerSentEvent<T>> carrier = new BlockingQueueCarrier<>(this.carrierQueueCapacity);
 
@@ -59,7 +59,7 @@ public class ServerSentEventStreamReader {
 
 				if (line == null) {
 					carrier.close();
-					return;
+//					return;
 				}
 
 				// End of event

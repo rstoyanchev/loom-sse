@@ -36,11 +36,6 @@ public class BlockingQueueConduit<T> implements Conduit<T> {
 	}
 
 	@Override
-	public @Nullable Throwable getCompletionException() {
-		return (this.completion instanceof Throwable throwable ? throwable : null);
-	}
-
-	@Override
 	public void send(T item) throws ClosedException, InterruptedException {
 		this.queue.put(item);
 	}
@@ -67,6 +62,11 @@ public class BlockingQueueConduit<T> implements Conduit<T> {
 	@Override
 	public boolean isClosed() {
 		return this.closed;
+	}
+
+	@Override
+	public @Nullable Throwable getCompletionException() {
+		return (this.completion instanceof Throwable throwable ? throwable : null);
 	}
 
 	@Override

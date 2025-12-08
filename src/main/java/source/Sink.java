@@ -1,21 +1,13 @@
 package source;
 
 import carrier.ClosedException;
-import org.jspecify.annotations.Nullable;
 
 public interface Sink<T> {
 
 	/**
-	 // TODO: what if closed from Source side?
 	 * Return {@code true} if the sink is closed for sending.
 	 */
 	boolean isComplete();
-
-	/**
-	 * If the Sink completed exceptionally, return the Exception passed into
-	 * {@link #completeExceptionally(Throwable)}.
-	 */
-	@Nullable Throwable getCompletionException();
 
 	/**
 	 * Send or block until an item can be sent.

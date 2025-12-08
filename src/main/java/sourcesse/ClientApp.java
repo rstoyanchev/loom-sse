@@ -8,7 +8,7 @@ import org.apache.commons.logging.LogFactory;
 import source.ActiveSource;
 import source.Source;
 
-import org.springframework.core.task.VirtualThreadTaskExecutor;
+import org.springframework.http.HttpRequest;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.client.RestClient;
 
@@ -46,13 +46,9 @@ public class ClientApp {
 
 	private static void runActiveSource(RestClient restClient) throws IOException, InterruptedException {
 
-		ActiveSource<ServerSentEvent<String>> activeSource = restClient.get().uri("/sse")
-				.exchangeForRequiredValue((request, response) -> {
-					ServerSentEventSource<String> source = new ServerSentEventSource<>(request, response);
-					return ActiveSource.builder(source).build();
-				}, false);
+		try (Source<ServerSentEvent<String>> source =
+					 restClient.get().uri("/sse").exchangeForRequiredValue(ClientApp::toSseSource, false).start()) {
 
-		try (Source<ServerSentEvent<String>> source = activeSource.start()) {
 			while (true) {
 				ServerSentEvent<String> event = source.receive(Duration.ofSeconds(2));
 				if (event == null) {
@@ -66,6 +62,14 @@ public class ClientApp {
 				logger.info("Got " + event.data());
 			}
 		}
+	}
+
+	private static ActiveSource<ServerSentEvent<String>> toSseSource(
+			HttpRequest request, RestClient.RequestHeadersSpec.ConvertibleClientHttpResponse response)
+			throws IOException {
+
+		ServerSentEventSource<String> source = new ServerSentEventSource<>(request, response);
+		return ActiveSource.builder(source).build();
 	}
 
 }

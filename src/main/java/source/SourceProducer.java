@@ -2,12 +2,12 @@ package source;
 
 import java.io.IOException;
 
-public class SourceSinkAdapter<T> implements Producer<T> {
+public class SourceProducer<T> implements Producer<T> {
 
 	private final Source<T> source;
 
 
-	public SourceSinkAdapter(Source<T> source) {
+	public SourceProducer(Source<T> source) {
 		this.source = source;
 	}
 
@@ -61,8 +61,6 @@ public class SourceSinkAdapter<T> implements Producer<T> {
 				}
 			}
 		}
-
-
 	}
 
 }

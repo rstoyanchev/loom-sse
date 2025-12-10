@@ -6,6 +6,8 @@ import java.time.Duration;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import source.ActiveSource;
+import source.ExecutorActiveSource;
+import source.Producer;
 import source.Source;
 
 import org.springframework.http.HttpRequest;
@@ -69,7 +71,7 @@ public class ClientApp {
 			throws IOException {
 
 		ServerSentEventSource<String> source = new ServerSentEventSource<>(request, response);
-		return ActiveSource.builder(source).build();
+		return ExecutorActiveSource.create(Producer.fromSource(source));
 	}
 
 }

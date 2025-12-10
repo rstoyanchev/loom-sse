@@ -8,9 +8,9 @@ import org.jspecify.annotations.Nullable;
 
 import org.springframework.core.task.VirtualThreadTaskExecutor;
 
-class DefaultActiveSource<T> implements ActiveSource<T> {
+public class ExecutorActiveSource<T> implements ActiveSource<T> {
 
-	private static final Logger logger = LogManager.getLogger(DefaultActiveSource.class);
+	private static final Logger logger = LogManager.getLogger(ExecutorActiveSource.class);
 
 
 	private final Producer<T> producer;
@@ -20,7 +20,7 @@ class DefaultActiveSource<T> implements ActiveSource<T> {
 	private final Executor executor;
 
 
-	public DefaultActiveSource(Producer<T> producer, @Nullable Executor executor) {
+	private ExecutorActiveSource(Producer<T> producer, @Nullable Executor executor) {
 		this.producer = producer;
 		this.sinkSource = new BlockingQueueSinkSource<>();
 		this.executor = (executor != null ? executor : new VirtualThreadTaskExecutor());
@@ -41,6 +41,15 @@ class DefaultActiveSource<T> implements ActiveSource<T> {
 			}
 		});
 		return this.sinkSource;
+	}
+
+
+	public static <T> ExecutorActiveSource<T> create(Producer<T> producer) {
+		return new ExecutorActiveSource<>(producer, null);
+	}
+
+	public static <T> ExecutorActiveSource<T> create(Producer<T> producer, Executor executor) {
+		return new ExecutorActiveSource<>(producer, executor);
 	}
 
 }

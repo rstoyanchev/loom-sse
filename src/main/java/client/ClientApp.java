@@ -1,4 +1,4 @@
-package sourcesse;
+package client;
 
 import java.io.IOException;
 import java.time.Duration;
@@ -21,8 +21,8 @@ public class ClientApp {
 
 		RestClient restClient = RestClient.create("http://localhost:8080");
 
-		runSource(restClient);
-//		runActiveSource(restClient);
+//		runSource(restClient);
+		runActiveSource(restClient);
 
 		logger.info("Exiting");
 		System.exit(0);
@@ -50,7 +50,7 @@ public class ClientApp {
 					 restClient.get().uri("/sse").exchangeForRequiredValue(ClientApp::toSseSource, false).start()) {
 
 			while (true) {
-				ServerSentEvent<String> event = source.receive(Duration.ofSeconds(2));
+				ServerSentEvent<String> event = source.tryReceive(Duration.ofSeconds(2));
 				if (event == null) {
 					if (source.isClosed()) {
 						logger.info("Source closed");

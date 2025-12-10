@@ -1,4 +1,4 @@
-package sourcesse;
+package client;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;

@@ -1,4 +1,4 @@
-package sourcesse;
+package client;
 
 import java.io.BufferedReader;
 import java.io.EOFException;
@@ -8,10 +8,10 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.function.Function;
 
-import carrier.ClosedException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
+import source.ClosedException;
 import source.Source;
 
 import org.springframework.core.ResolvableType;
@@ -144,7 +144,7 @@ public class ServerSentEventSource<T> implements Source<ServerSentEvent<T>> {
 	}
 
 	@Override
-	public @Nullable ServerSentEvent<T> receive(Duration timeout) throws ClosedException {
+	public @Nullable ServerSentEvent<T> tryReceive(Duration timeout) throws ClosedException {
 		assertNotClosed();
 		return null;
 	}

@@ -5,4 +5,4 @@ pluginManagement {
 		gradlePluginPortal()
 	}
 }
-rootProject.name = 'carrier-poc'
+rootProject.name = 'loom-sse'

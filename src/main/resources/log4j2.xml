@@ -7,10 +7,13 @@
 		</Console>
 	</Appenders>
 	<Loggers>
-		<Logger name="org.example" additivity="false" level="debug">
+		<Logger name="client" additivity="false" level="debug">
 			<AppenderRef ref="ConsoleAppender"/>
 		</Logger>
-		<Logger name="carrier" additivity="false" level="debug">
+		<Logger name="server" additivity="false" level="debug">
+			<AppenderRef ref="ConsoleAppender"/>
+		</Logger>
+		<Logger name="source" additivity="false" level="debug">
 			<AppenderRef ref="ConsoleAppender"/>
 		</Logger>
 		<Logger name="org.springframework.web" additivity="false" level="debug">

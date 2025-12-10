@@ -9,7 +9,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.jspecify.annotations.Nullable;
 
-public class BlockingQueueConduit<T> implements Conduit<T> {
+public class BlockingQueueSinkSource<T> implements Sink<T>, Source<T> {
 
 	private final BlockingQueue<T> queue;
 
@@ -18,11 +18,11 @@ public class BlockingQueueConduit<T> implements Conduit<T> {
 	private volatile boolean closed;
 
 
-	public BlockingQueueConduit() {
+	public BlockingQueueSinkSource() {
 		this(128);
 	}
 
-	public BlockingQueueConduit(int capacity) {
+	public BlockingQueueSinkSource(int capacity) {
 		this.queue = (capacity > 0 ? new LinkedBlockingQueue<>(capacity) : new SynchronousQueue<>());
 	}
 
@@ -70,16 +70,18 @@ public class BlockingQueueConduit<T> implements Conduit<T> {
 	}
 
 	@Override
-	public T receive() throws ClosedException, InterruptedException {
+	public @Nullable T receive() throws ClosedException, InterruptedException {
 		assertNotClosed();
 		T item = this.queue.take();
+		// TODO: catch interrupt and close
 		closeAfterCompletion();
 		return item;
 	}
 
 	@Override
-	public T receive(Duration timeout) throws ClosedException, InterruptedException {
+	public T tryReceive(Duration timeout) throws ClosedException, InterruptedException {
 		assertNotClosed();
+		// TODO: catch interrupt and close
 		T item = this.queue.poll(TimeUnit.MILLISECONDS.convert(timeout), TimeUnit.MILLISECONDS);
 		closeAfterCompletion();
 		return item;
@@ -95,7 +97,7 @@ public class BlockingQueueConduit<T> implements Conduit<T> {
 
 	private void assertNotClosed() {
 		if (isClosed()) {
-			throw new carrier.ClosedException(this);
+			throw new ClosedException(this);
 		}
 	}
 
@@ -108,10 +110,13 @@ public class BlockingQueueConduit<T> implements Conduit<T> {
 	@Override
 	public void close() {
 		this.closed = true;
-		if (this.completion != null) {
+		if (this.completion == null) {
 			this.completion = new CancellationException();
 		}
+		// call onClose callback
 		this.queue.clear(); // discarded items
 	}
+
+	// onClose callback
 
 }

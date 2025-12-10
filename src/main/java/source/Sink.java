@@ -1,7 +1,5 @@
 package source;
 
-import carrier.ClosedException;
-
 public interface Sink<T> {
 
 	/**

@@ -3,7 +3,6 @@ package source;
 import java.io.IOException;
 import java.time.Duration;
 
-import carrier.ClosedException;
 import org.jspecify.annotations.Nullable;
 
 public interface Source<T> extends AutoCloseable {
@@ -31,7 +30,7 @@ public interface Source<T> extends AutoCloseable {
 	 * @return the item, or {@code null} if no items were received before timeout,
 	 * or the Source was closed.
 	 */
-	@Nullable T receive(Duration timeout) throws IOException, ClosedException, InterruptedException;
+	@Nullable T tryReceive(Duration timeout) throws IOException, ClosedException, InterruptedException;
 
 	/**
 	 * Try to receive an item.

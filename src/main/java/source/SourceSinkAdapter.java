@@ -2,8 +2,6 @@ package source;
 
 import java.io.IOException;
 
-import carrier.ClosedException;
-
 public class SourceSinkAdapter<T> implements Producer<T> {
 
 	private final Source<T> source;

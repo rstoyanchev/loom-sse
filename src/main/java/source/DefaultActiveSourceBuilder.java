@@ -24,6 +24,6 @@ class DefaultActiveSourceBuilder<T> implements ActiveSource.Builder<T> {
 
 	@Override
 	public ActiveSource<T> build() {
-		return new ConduitActiveSource<>(this.producer, this.executor);
+		return new DefaultActiveSource<>(this.producer, this.executor);
 	}
 }

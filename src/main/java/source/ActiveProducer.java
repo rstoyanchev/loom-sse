@@ -1,5 +1,7 @@
 package source;
 
+import java.io.IOException;
+import java.time.Duration;
 import java.util.concurrent.Callable;
 
 import org.apache.logging.log4j.LogManager;
@@ -30,7 +32,7 @@ public abstract class ActiveProducer<T> {
 
 	public Source<T> getBufferingSource() {
 		if (this.sink instanceof BufferingSource<T> source) {
-			return new ClosePropagatingSource<>(source);
+			return new CloseInterceptingSource<>(source);
 		}
 		throw new IllegalStateException(
 				this.sink.getClass().getName() + " is not a BufferingSource");
@@ -74,11 +76,36 @@ public abstract class ActiveProducer<T> {
 	}
 
 
+	/**
+	 * Intercept close or interrupt signals from the consumer thread, and propagate
+	 * that through to the Producer task by calling {@link #stop()}.
+	 */
+	private class CloseInterceptingSource<T> extends SourceDecorator<T> {
 
-	private class ClosePropagatingSource<T> extends SourceDecorator<T> {
-
-		ClosePropagatingSource(Source<T> source) {
+		CloseInterceptingSource(BufferingSource<T> source) {
 			super(source);
+		}
+
+		@Override
+		public @Nullable T receive() throws IOException, ClosedException, InterruptedException {
+			try {
+				return super.receive();
+			}
+			catch (InterruptedException ex) {
+				stop();
+				throw ex;
+			}
+		}
+
+		@Override
+		public @Nullable T tryReceive(Duration timeout) throws IOException, ClosedException, InterruptedException {
+			try {
+				return super.tryReceive(timeout);
+			}
+			catch (InterruptedException ex) {
+				stop();
+				throw ex;
+			}
 		}
 
 		@Override

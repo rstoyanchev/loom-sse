@@ -51,6 +51,7 @@ public class BlockingQueueBufferingSource<T> implements BufferingSource<T> {
 	}
 
 	private void complete(Object completion) {
+		// TODO: how to interrupt blocked receivers?
 		if (this.completion == null) {
 			this.completion = completion;
 		}
@@ -72,8 +73,14 @@ public class BlockingQueueBufferingSource<T> implements BufferingSource<T> {
 	@Override
 	public @Nullable T receive() throws ClosedException, InterruptedException {
 		assertNotClosed();
-		T item = this.queue.take();
-		// TODO: catch interrupt and close
+		T item;
+		try {
+			item = this.queue.take();
+		}
+		catch (InterruptedException ex) {
+			close();
+			throw ex;
+		}
 		closeAfterCompletion();
 		return item;
 	}
@@ -81,8 +88,14 @@ public class BlockingQueueBufferingSource<T> implements BufferingSource<T> {
 	@Override
 	public T tryReceive(Duration timeout) throws ClosedException, InterruptedException {
 		assertNotClosed();
-		// TODO: catch interrupt and close
-		T item = this.queue.poll(TimeUnit.MILLISECONDS.convert(timeout), TimeUnit.MILLISECONDS);
+		T item;
+		try {
+			item = this.queue.poll(TimeUnit.MILLISECONDS.convert(timeout), TimeUnit.MILLISECONDS);
+		}
+		catch (InterruptedException ex) {
+			close();
+			throw ex;
+		}
 		closeAfterCompletion();
 		return item;
 	}

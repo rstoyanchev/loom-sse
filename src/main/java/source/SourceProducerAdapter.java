@@ -2,12 +2,12 @@ package source;
 
 import java.io.IOException;
 
-public class SourceProducer<T> implements Producer<T> {
+public class SourceProducerAdapter<T> implements Producer<T> {
 
 	private final Source<T> source;
 
 
-	public SourceProducer(Source<T> source) {
+	public SourceProducerAdapter(Source<T> source) {
 		this.source = source;
 	}
 

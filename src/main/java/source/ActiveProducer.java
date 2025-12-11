@@ -1,6 +1,12 @@
 package source;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 public abstract class ActiveProducer<T> {
+
+	protected final Logger logger = LogManager.getLogger(getClass());
+
 
 	private final Producer<T> producer;
 
@@ -34,6 +40,9 @@ public abstract class ActiveProducer<T> {
 
 	public final void start() {
 		if (this.state == State.NEW) {
+			if (logger.isInfoEnabled()) {
+				logger.info("Starting " + getProducer());
+			}
 			this.state = State.RUNNING;
 			startInternal();
 		}
@@ -43,12 +52,19 @@ public abstract class ActiveProducer<T> {
 
 	public final void stop() {
 		if (this.state == State.RUNNING) {
+			if (logger.isInfoEnabled()) {
+				logger.info("Stopping " + getProducer());
+			}
 			this.state = State.STOPPED;
 			stopInternal();
 		}
 	}
 
 	protected abstract void stopInternal();
+
+	protected void produce() throws InterruptedException {
+		this.producer.produce(this.sink);
+	}
 
 
 	private enum State {

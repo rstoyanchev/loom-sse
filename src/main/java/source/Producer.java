@@ -6,7 +6,7 @@ public interface Producer<T> {
 
 
 	static <T> Producer<T> fromSource(Source<T> source) {
-		return new SourceProducer<>(source);
+		return new SourceProducerAdapter<>(source);
 	}
 
 }

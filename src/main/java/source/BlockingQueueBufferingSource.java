@@ -113,10 +113,8 @@ public class BlockingQueueBufferingSource<T> implements BufferingSource<T> {
 		if (this.completion == null) {
 			this.completion = new CancellationException();
 		}
-		// call onClose callback
+		// onClose notifications
 		this.queue.clear(); // discarded items
 	}
-
-	// onClose callback
 
 }

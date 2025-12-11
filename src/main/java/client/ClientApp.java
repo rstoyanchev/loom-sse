@@ -5,14 +5,14 @@ import java.time.Duration;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import source.ActiveSource;
-import source.ExecutorActiveSource;
-import source.Producer;
+import source.ActiveProducer;
+import source.ExecutorActiveProducer;
 import source.Source;
 
 import org.springframework.http.HttpRequest;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClient.RequestHeadersSpec.ConvertibleClientHttpResponse;
 
 public class ClientApp {
 
@@ -24,7 +24,7 @@ public class ClientApp {
 		RestClient restClient = RestClient.create("http://localhost:8080");
 
 //		runSource(restClient);
-		runActiveSource(restClient);
+		runBufferingSource(restClient);
 
 		logger.info("Exiting");
 		System.exit(0);
@@ -46,10 +46,10 @@ public class ClientApp {
 		}
 	}
 
-	private static void runActiveSource(RestClient restClient) throws IOException, InterruptedException {
+	private static void runBufferingSource(RestClient restClient) throws IOException, InterruptedException {
 
 		try (Source<ServerSentEvent<String>> source =
-					 restClient.get().uri("/sse").exchangeForRequiredValue(ClientApp::toSseSource, false).start()) {
+					 restClient.get().uri("/sse").exchangeForRequiredValue(ClientApp::toBufferingSource, false)) {
 
 			while (true) {
 				ServerSentEvent<String> event = source.tryReceive(Duration.ofSeconds(2));
@@ -66,12 +66,13 @@ public class ClientApp {
 		}
 	}
 
-	private static ActiveSource<ServerSentEvent<String>> toSseSource(
-			HttpRequest request, RestClient.RequestHeadersSpec.ConvertibleClientHttpResponse response)
-			throws IOException {
+	private static Source<ServerSentEvent<String>> toBufferingSource(
+			HttpRequest request, ConvertibleClientHttpResponse response) throws IOException {
 
 		ServerSentEventSource<String> source = new ServerSentEventSource<>(request, response);
-		return ExecutorActiveSource.create(Producer.fromSource(source));
+		ActiveProducer<ServerSentEvent<String>> producer = ExecutorActiveProducer.create(source);
+		producer.start();
+		return producer.getSource();
 	}
 
 }

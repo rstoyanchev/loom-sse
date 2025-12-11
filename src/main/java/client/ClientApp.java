@@ -83,7 +83,7 @@ public class ClientApp {
 			ActiveProducer<ServerSentEvent<String>> producer = StructuredActiveProducer.create(source);
 //			ActiveProducer<ServerSentEvent<String>> producer = ExecutorActiveProducer.create(source);
 			producer.start();
-			return producer.getSource();
+			return producer.getBufferingSource();
 		};
 	}
 

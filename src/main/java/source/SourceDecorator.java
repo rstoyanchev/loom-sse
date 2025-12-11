@@ -5,12 +5,12 @@ import java.time.Duration;
 
 import org.jspecify.annotations.Nullable;
 
-public class DecoratorSource<T> implements Source<T> {
+public class SourceDecorator<T> implements Source<T> {
 
-	private Source<T> delegate;
+	private final Source<T> delegate;
 
 
-	public DecoratorSource(Source<T> delegate) {
+	public SourceDecorator(Source<T> delegate) {
 		this.delegate = delegate;
 	}
 

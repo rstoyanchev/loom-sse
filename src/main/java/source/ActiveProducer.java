@@ -28,9 +28,9 @@ public abstract class ActiveProducer<T> {
 	}
 
 
-	public Source<T> getSource() {
+	public Source<T> getBufferingSource() {
 		if (this.sink instanceof BufferingSource<T> source) {
-			return new CloseInterceptingSource<>(source);
+			return new ClosePropagatingSource<>(source);
 		}
 		throw new IllegalStateException(
 				this.sink.getClass().getName() + " is not a BufferingSource");
@@ -75,9 +75,9 @@ public abstract class ActiveProducer<T> {
 
 
 
-	private class CloseInterceptingSource<T> extends DecoratorSource<T> {
+	private class ClosePropagatingSource<T> extends SourceDecorator<T> {
 
-		CloseInterceptingSource(Source<T> source) {
+		ClosePropagatingSource(Source<T> source) {
 			super(source);
 		}
 

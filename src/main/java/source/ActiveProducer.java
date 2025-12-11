@@ -1,5 +1,7 @@
 package source;
 
+import java.util.concurrent.Callable;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
@@ -28,25 +30,17 @@ public abstract class ActiveProducer<T> {
 
 	public Source<T> getSource() {
 		if (this.sink instanceof BufferingSource<T> source) {
-			return source;
+			return new CloseInterceptingSource<>(source);
 		}
 		throw new IllegalStateException(
 				this.sink.getClass().getName() + " is not a BufferingSource");
-	}
-
-	protected Producer<T> getProducer() {
-		return this.producer;
-	}
-
-	protected Sink<T> getSink() {
-		return this.sink;
 	}
 
 
 	public final void start() {
 		if (this.state == State.NEW) {
 			if (logger.isInfoEnabled()) {
-				logger.info("Starting " + getProducer());
+				logger.info("Starting " + this.producer);
 			}
 			this.state = State.RUNNING;
 			startInternal();
@@ -55,25 +49,50 @@ public abstract class ActiveProducer<T> {
 
 	protected abstract void startInternal();
 
-	public final void stop() {
+	public final void stop() throws InterruptedException {
 		if (this.state == State.RUNNING) {
 			if (logger.isInfoEnabled()) {
-				logger.info("Stopping " + getProducer());
+				logger.info("Stopping " + this.producer);
 			}
 			this.state = State.STOPPED;
 			stopInternal();
 		}
 	}
 
-	protected abstract void stopInternal();
+	protected abstract void stopInternal() throws InterruptedException;
 
-	protected void produce() throws InterruptedException {
-		this.producer.produce(this.sink);
+	protected Callable<Void> getProducerTask() {
+		return () -> {
+			this.producer.produce(this.sink);
+			return null;
+		};
 	}
 
 
 	private enum State {
 		NEW, RUNNING, STOPPED
+	}
+
+
+
+	private class CloseInterceptingSource<T> extends DecoratorSource<T> {
+
+		CloseInterceptingSource(Source<T> source) {
+			super(source);
+		}
+
+		@Override
+		public void close() {
+			try {
+				stop();
+			}
+			catch (InterruptedException ex) {
+				Thread.currentThread().interrupt();
+			}
+			finally {
+				super.close();
+			}
+		}
 	}
 
 }

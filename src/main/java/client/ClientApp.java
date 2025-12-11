@@ -1,6 +1,5 @@
 package client;
 
-import java.io.IOException;
 import java.time.Duration;
 
 import org.apache.commons.logging.Log;
@@ -9,10 +8,9 @@ import source.ActiveProducer;
 import source.Source;
 import source.StructuredActiveProducer;
 
-import org.springframework.http.HttpRequest;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClient.RequestHeadersSpec.ConvertibleClientHttpResponse;
+import org.springframework.web.client.RestClient.RequestHeadersSpec.RequiredValueExchangeFunction;
 
 public class ClientApp {
 
@@ -21,19 +19,20 @@ public class ClientApp {
 
 	public static void main(String[] args) throws Exception {
 
-		RestClient restClient = RestClient.create("http://localhost:8080");
+		RestClient client = RestClient.create("http://localhost:8080");
 
 //		runSource(restClient);
-		runBufferingSource(restClient);
+//		runBufferingSource(client);
+		cancelBufferingSource(client);
 
 		logger.info("Exiting");
 		System.exit(0);
 	}
 
-	private static void runSource(RestClient restClient) throws IOException, InterruptedException {
+	private static void runSource(RestClient client) throws Exception {
 
 		try (ServerSentEventSource<String> source =
-					 restClient.get().uri("/sse").exchangeForRequiredValue(ServerSentEventSource::new, false)) {
+					 client.get().uri("/sse").exchangeForRequiredValue(ServerSentEventSource::new, false)) {
 
 			while (true) {
 				ServerSentEvent<String> event = source.receive();
@@ -41,15 +40,15 @@ public class ClientApp {
 					logger.info("No more events");
 					break;
 				}
-				logger.info("Got " + event.data());
+				logger.info("Got " + event);
 			}
 		}
 	}
 
-	private static void runBufferingSource(RestClient restClient) throws IOException, InterruptedException {
+	private static void runBufferingSource(RestClient client) throws Exception {
 
 		try (Source<ServerSentEvent<String>> source =
-					 restClient.get().uri("/sse").exchangeForRequiredValue(ClientApp::toBufferingSource, false)) {
+					 client.get().uri("/sse").exchangeForRequiredValue(toBufferingSource(), false)) {
 
 			while (true) {
 				ServerSentEvent<String> event = source.tryReceive(Duration.ofSeconds(2));
@@ -61,18 +60,31 @@ public class ClientApp {
 					logger.info("Timed out waiting for event");
 					continue;
 				}
-				logger.info("Got " + event.data());
+				logger.info("Got " + event);
 			}
 		}
 	}
 
-	private static Source<ServerSentEvent<String>> toBufferingSource(
-			HttpRequest request, ConvertibleClientHttpResponse response) throws IOException {
+	private static void cancelBufferingSource(RestClient client) throws Exception {
 
-		ServerSentEventSource<String> source = new ServerSentEventSource<>(request, response);
-		ActiveProducer<ServerSentEvent<String>> producer = StructuredActiveProducer.create(source);
-		producer.start();
-		return producer.getSource();
+		try (Source<ServerSentEvent<String>> source =
+					 client.get().uri("/sse").exchangeForRequiredValue(toBufferingSource(), false)) {
+
+			ServerSentEvent<String> event = source.tryReceive(Duration.ofSeconds(2));
+			logger.info("Got " + event);
+
+			Thread.sleep(1000);
+		}
+	}
+
+	private static RequiredValueExchangeFunction<Source<ServerSentEvent<String>>> toBufferingSource() {
+		return (request, response) -> {
+			ServerSentEventSource<String> source = new ServerSentEventSource<>(request, response);
+			ActiveProducer<ServerSentEvent<String>> producer = StructuredActiveProducer.create(source);
+//			ActiveProducer<ServerSentEvent<String>> producer = ExecutorActiveProducer.create(source);
+			producer.start();
+			return producer.getSource();
+		};
 	}
 
 }

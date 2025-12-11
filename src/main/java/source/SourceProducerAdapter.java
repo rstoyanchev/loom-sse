@@ -14,7 +14,7 @@ public class SourceProducerAdapter<T> implements Producer<T> {
 
 	@Override
 	public String toString() {
-		return "SourceSinkAdapter for " + this.source;
+		return getClass().getSimpleName() + " for " + this.source;
 	}
 
 	@Override

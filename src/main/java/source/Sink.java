@@ -3,7 +3,9 @@ package source;
 public interface Sink<T> {
 
 	/**
-	 * Return {@code true} if the sink is closed for sending.
+	 * Return {@code true} if the sink can no longer send either due to completion
+	 * via {@link #complete} or {@link #completeExceptionally}, or because the
+	 * {@code Sink} is closed.
 	 */
 	boolean isComplete();
 

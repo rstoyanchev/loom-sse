@@ -32,7 +32,7 @@ public class BlockingQueueBufferingSource<T> implements BufferingSource<T> {
 
 	@Override
 	public boolean isComplete() {
-		return (this.completion != null);
+		return (this.completion != null || this.closed);
 	}
 
 	@Override

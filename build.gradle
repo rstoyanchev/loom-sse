@@ -15,7 +15,7 @@ application {
 
 java {
 	toolchain {
-		languageVersion = JavaLanguageVersion.of(24)
+		languageVersion = JavaLanguageVersion.of(25)
 	}
 }
 
@@ -45,4 +45,13 @@ dependencies {
 
 test {
 	useJUnitPlatform()
+	jvmArgs.add("--enable-preview")
+}
+
+tasks.withType(JavaCompile).configureEach {
+	options.compilerArgs.add("--enable-preview")
+}
+
+tasks.withType(JavaExec).configureEach {
+	jvmArgs('--enable-preview')
 }

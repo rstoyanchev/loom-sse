@@ -2,6 +2,7 @@ package source;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jspecify.annotations.Nullable;
 
 public abstract class ActiveProducer<T> {
 
@@ -15,9 +16,13 @@ public abstract class ActiveProducer<T> {
 	private State state = State.NEW;
 
 
-	protected ActiveProducer(Producer<T> producer, Sink<T> sink) {
+	protected ActiveProducer(Source<T> source, @Nullable Sink<T> sink) {
+		this(new SourceProducerAdapter<>(source), sink);
+	}
+
+	protected ActiveProducer(Producer<T> producer, @Nullable Sink<T> sink) {
 		this.producer = producer;
-		this.sink = sink;
+		this.sink = (sink != null ? sink : new BlockingQueueBufferingSource<>());
 	}
 
 

@@ -6,8 +6,8 @@ import java.time.Duration;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import source.ActiveProducer;
-import source.ExecutorActiveProducer;
 import source.Source;
+import source.StructuredActiveProducer;
 
 import org.springframework.http.HttpRequest;
 import org.springframework.http.codec.ServerSentEvent;
@@ -70,7 +70,7 @@ public class ClientApp {
 			HttpRequest request, ConvertibleClientHttpResponse response) throws IOException {
 
 		ServerSentEventSource<String> source = new ServerSentEventSource<>(request, response);
-		ActiveProducer<ServerSentEvent<String>> producer = ExecutorActiveProducer.create(source);
+		ActiveProducer<ServerSentEvent<String>> producer = StructuredActiveProducer.create(source);
 		producer.start();
 		return producer.getSource();
 	}

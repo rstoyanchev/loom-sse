@@ -10,8 +10,8 @@ public class ExecutorActiveProducer<T> extends ActiveProducer<T> {
 	private final Executor executor;
 
 
-	private ExecutorActiveProducer(Producer<T> producer, @Nullable Executor executor) {
-		super(producer, new BlockingQueueBufferingSource<>());
+	private ExecutorActiveProducer(Source<T> source, @Nullable Executor executor) {
+		super(source, null);
 		this.executor = (executor != null ? executor : Executors.newVirtualThreadPerTaskExecutor());
 	}
 
@@ -35,8 +35,7 @@ public class ExecutorActiveProducer<T> extends ActiveProducer<T> {
 
 
 	public static <T> ExecutorActiveProducer<T> create(Source<T> source) {
-		SourceProducerAdapter<T> producer = new SourceProducerAdapter<>(source);
-		return new ExecutorActiveProducer<>(producer, null);
+		return new ExecutorActiveProducer<>(source, null);
 	}
 
 }

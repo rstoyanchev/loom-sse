@@ -15,14 +15,14 @@ public class ExecutorActiveSource<T> implements ActiveSource<T> {
 
 	private final Producer<T> producer;
 
-	private final BlockingQueueSinkSource<T> sinkSource;
+	private final BufferingSource<T> bufferingSource;
 
 	private final Executor executor;
 
 
 	private ExecutorActiveSource(Producer<T> producer, @Nullable Executor executor) {
 		this.producer = producer;
-		this.sinkSource = new BlockingQueueSinkSource<>();
+		this.bufferingSource = new BlockingQueueBufferingSource<>();
 		this.executor = (executor != null ? executor : new VirtualThreadTaskExecutor());
 	}
 
@@ -33,14 +33,14 @@ public class ExecutorActiveSource<T> implements ActiveSource<T> {
 		this.executor.execute(() -> {
 			logger.info("Starting " + this.producer);
 			try {
-				this.producer.produce(this.sinkSource);
+				this.producer.produce(this.bufferingSource);
 				// TODO: register for onClose notification to interrupt
 			}
 			catch (InterruptedException ex) {
 				throw new RuntimeException(ex);
 			}
 		});
-		return this.sinkSource;
+		return this.bufferingSource;
 	}
 
 

@@ -1,125 +1,30 @@
 package source;
 
-import java.io.IOException;
-import java.time.Duration;
-import java.util.concurrent.Callable;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.jspecify.annotations.Nullable;
-
-public abstract class ActiveProducer<T> {
-
-	protected final Logger logger = LogManager.getLogger(getClass());
-
-
-	private final Producer<T> producer;
-
-	private final Sink<T> sink;
-
-	private State state = State.NEW;
-
-
-	protected ActiveProducer(Source<T> source, @Nullable Sink<T> sink) {
-		this(new SourceProducerAdapter<>(source), sink);
-	}
-
-	protected ActiveProducer(Producer<T> producer, @Nullable Sink<T> sink) {
-		this.producer = producer;
-		this.sink = (sink != null ? sink : new BlockingQueueBufferingSource<>());
-	}
-
-
-	public Source<T> getBufferingSource() {
-		if (this.sink instanceof BufferingSource<T> source) {
-			return new CancellationPropagatingSource<>(source);
-		}
-		throw new IllegalStateException(
-				this.sink.getClass().getName() + " is not a BufferingSource");
-	}
-
-
-	public final void start() {
-		if (this.state == State.NEW) {
-			if (logger.isInfoEnabled()) {
-				logger.info("Starting " + this.producer);
-			}
-			this.state = State.RUNNING;
-			startInternal();
-		}
-	}
-
-	protected abstract void startInternal();
-
-	public final void stop() throws InterruptedException {
-		if (this.state == State.RUNNING) {
-			if (logger.isInfoEnabled()) {
-				logger.info("Stopping " + this.producer);
-			}
-			this.state = State.STOPPED;
-			stopInternal();
-		}
-	}
-
-	protected abstract void stopInternal() throws InterruptedException;
-
-	protected Callable<Void> getProducerTask() {
-		return () -> {
-			this.producer.produce(this.sink);
-			return null;
-		};
-	}
-
-
-	private enum State {
-		NEW, RUNNING, STOPPED
-	}
-
+/**
+ * Contract to start and stop a producer on a dedicated thread, also exposing a
+ * {@link Source} for receiving items when {@link Sink} the producer pushes
+ * into is a {@link BufferingSource}.
+ *
+ * @param <T> the types of items produced
+ */
+public interface ActiveProducer<T> {
 
 	/**
-	 * Intercept {@link Source#close()} and consumer thread interrupts, and
-	 * propagate those to the Producer task by calling {@link #stop()}.
+	 * Return a {@link Source} for receiving items when the producer pushes
+	 * into a {@link BufferingSource}.
+	 * @throws IllegalStateException if the producer is pushing into a
+	 * {@link Sink} that is not a {@link BufferingSource}.
 	 */
-	private class CancellationPropagatingSource<T> extends SourceDecorator<T> {
+	Source<T> source();
 
-		CancellationPropagatingSource(BufferingSource<T> source) {
-			super(source);
-		}
+	/**
+	 * Start the producer in a dedicated thread.
+	 */
+	void start();
 
-		@Override
-		public @Nullable T receive() throws IOException, ClosedException, InterruptedException {
-			try {
-				return super.receive();
-			}
-			catch (InterruptedException ex) {
-				stop();
-				throw ex;
-			}
-		}
-
-		@Override
-		public @Nullable T tryReceive(Duration timeout) throws IOException, ClosedException, InterruptedException {
-			try {
-				return super.tryReceive(timeout);
-			}
-			catch (InterruptedException ex) {
-				stop();
-				throw ex;
-			}
-		}
-
-		@Override
-		public void close() {
-			try {
-				stop();
-			}
-			catch (InterruptedException ex) {
-				Thread.currentThread().interrupt();
-			}
-			finally {
-				super.close();
-			}
-		}
-	}
+	/**
+	 * Stop the producer.
+	 */
+	void stop() throws InterruptedException;
 
 }

@@ -9,7 +9,7 @@ import org.jspecify.annotations.Nullable;
 
 import org.springframework.util.Assert;
 
-public class ExecutorActiveProducer<T> extends ActiveProducer<T> {
+public class ExecutorActiveProducer<T> extends AbstractActiveProducer<T> {
 
 	private final ExecutorService executorService;
 

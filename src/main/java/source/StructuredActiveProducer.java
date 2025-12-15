@@ -2,7 +2,7 @@ package source;
 
 import java.util.concurrent.StructuredTaskScope;
 
-public class StructuredActiveProducer<T> extends ActiveProducer<T> {
+public class StructuredActiveProducer<T> extends AbstractActiveProducer<T> {
 
 	private final StructuredTaskScope<Void, ?> scope;
 

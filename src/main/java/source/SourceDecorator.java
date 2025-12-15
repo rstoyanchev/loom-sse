@@ -5,6 +5,9 @@ import java.time.Duration;
 
 import org.jspecify.annotations.Nullable;
 
+/**
+ * A Source that delegates to another Source.
+ */
 public class SourceDecorator<T> implements Source<T> {
 
 	private final Source<T> delegate;

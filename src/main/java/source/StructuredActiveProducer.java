@@ -1,7 +1,6 @@
 package source;
 
 import java.util.concurrent.StructuredTaskScope;
-import java.util.concurrent.TimeoutException;
 
 public class StructuredActiveProducer<T> extends ActiveProducer<T> {
 

@@ -2,6 +2,12 @@ package source;
 
 import java.io.IOException;
 
+/**
+ * {@link Producer} that reads from a {@link Source} and pushes into a {@link Sink}.
+ * In effect, converting from pull to a push style stream of items.
+ *
+ * @param <T> the items of items received from the source
+ */
 public class SourceProducerAdapter<T> implements Producer<T> {
 
 	private final Source<T> source;
@@ -11,11 +17,6 @@ public class SourceProducerAdapter<T> implements Producer<T> {
 		this.source = source;
 	}
 
-
-	@Override
-	public String toString() {
-		return getClass().getSimpleName() + " for " + this.source;
-	}
 
 	@Override
 	public void produce(Sink<T> sink) throws InterruptedException {
@@ -61,6 +62,11 @@ public class SourceProducerAdapter<T> implements Producer<T> {
 				}
 			}
 		}
+	}
+
+	@Override
+	public String toString() {
+		return getClass().getSimpleName() + " for " + this.source;
 	}
 
 }

@@ -32,7 +32,7 @@ public abstract class ActiveProducer<T> {
 
 	public Source<T> getBufferingSource() {
 		if (this.sink instanceof BufferingSource<T> source) {
-			return new CloseInterceptingSource<>(source);
+			return new CancellationPropagatingSource<>(source);
 		}
 		throw new IllegalStateException(
 				this.sink.getClass().getName() + " is not a BufferingSource");
@@ -77,12 +77,12 @@ public abstract class ActiveProducer<T> {
 
 
 	/**
-	 * Intercept close or interrupt signals from the consumer thread, and propagate
-	 * that through to the Producer task by calling {@link #stop()}.
+	 * Intercept {@link Source#close()} and consumer thread interrupts, and
+	 * propagate those to the Producer task by calling {@link #stop()}.
 	 */
-	private class CloseInterceptingSource<T> extends SourceDecorator<T> {
+	private class CancellationPropagatingSource<T> extends SourceDecorator<T> {
 
-		CloseInterceptingSource(BufferingSource<T> source) {
+		CancellationPropagatingSource(BufferingSource<T> source) {
 			super(source);
 		}
 

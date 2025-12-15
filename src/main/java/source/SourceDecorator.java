@@ -44,7 +44,7 @@ public class SourceDecorator<T> implements Source<T> {
 	}
 
 	@Override
-	public @Nullable T tryReceive() {
+	public @Nullable T tryReceive() throws IOException, ClosedException {
 		return this.delegate.tryReceive();
 	}
 

@@ -1,5 +1,6 @@
 package source;
 
+import java.io.IOException;
 import java.time.Duration;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CancellationException;
@@ -81,7 +82,7 @@ public class BlockingQueueBufferingSource<T> implements BufferingSource<T> {
 	}
 
 	@Override
-	public @Nullable T receive() throws ClosedException, InterruptedException {
+	public @Nullable T receive() throws IOException, ClosedException, InterruptedException {
 		assertNotClosed();
 		T item;
 		try {
@@ -96,7 +97,7 @@ public class BlockingQueueBufferingSource<T> implements BufferingSource<T> {
 	}
 
 	@Override
-	public T tryReceive(Duration timeout) throws ClosedException, InterruptedException {
+	public T tryReceive(Duration timeout) throws IOException, ClosedException, InterruptedException {
 		assertNotClosed();
 		T item;
 		try {
@@ -111,16 +112,21 @@ public class BlockingQueueBufferingSource<T> implements BufferingSource<T> {
 	}
 
 	@Override
-	public @Nullable T tryReceive() {
+	public @Nullable T tryReceive() throws IOException, ClosedException {
 		assertNotClosed();
 		T item = this.queue.poll();
 		closeAfterCompletion();
 		return item;
 	}
 
-	private void assertNotClosed() {
+	private void assertNotClosed() throws IOException {
 		if (isClosed()) {
-			throw new ClosedException(this);
+			switch (this.completion) {
+				case IOException ex -> throw ex;
+				case RuntimeException ex -> throw ex;
+				case Throwable ex -> throw new ClosedException(this, ex);
+				case null, default -> throw (new ClosedException(this));
+			}
 		}
 	}
 

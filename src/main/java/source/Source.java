@@ -44,7 +44,7 @@ public interface Source<T> extends AutoCloseable {
 	 * @return the item, or {@code null} if there aren't any items available to
 	 * receive without blocking at this time.
 	 */
-	@Nullable T tryReceive();
+	@Nullable T tryReceive() throws IOException, ClosedException;
 
 	/**
 	 * Close the Source from the receiving side.

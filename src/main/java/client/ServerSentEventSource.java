@@ -145,14 +145,12 @@ public class ServerSentEventSource<T> implements Source<ServerSentEvent<T>> {
 
 	@Override
 	public @Nullable ServerSentEvent<T> tryReceive(Duration timeout) throws ClosedException {
-		assertNotClosed();
-		return null;
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public @Nullable ServerSentEvent<T> tryReceive() {
-		assertNotClosed();
-		return null;
+		throw new UnsupportedOperationException();
 	}
 
 	@Override

@@ -41,6 +41,16 @@ public class BlockingQueueBufferingSource<T> implements BufferingSource<T> {
 	}
 
 	@Override
+	public boolean trySend(T item, Duration timeout) throws ClosedException, InterruptedException {
+		return this.queue.offer(item, TimeUnit.MILLISECONDS.convert(timeout), TimeUnit.MILLISECONDS);
+	}
+
+	@Override
+	public boolean trySend(T item) {
+		return this.queue.offer(item);
+	}
+
+	@Override
 	public void complete() {
 		complete(Boolean.TRUE);
 	}

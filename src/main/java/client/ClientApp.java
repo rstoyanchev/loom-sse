@@ -22,8 +22,8 @@ public class ClientApp {
 		RestClient client = RestClient.create("http://localhost:8080");
 
 //		runSource(restClient);
-//		runBufferingSource(client);
-		cancelBufferingSource(client);
+		runBufferingSource(client);
+//		cancelBufferingSource(client);
 
 		logger.info("Exiting");
 		System.exit(0);

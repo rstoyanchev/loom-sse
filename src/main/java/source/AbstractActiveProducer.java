@@ -25,17 +25,18 @@ public abstract class AbstractActiveProducer<T> implements ActiveProducer<T> {
 
 	protected AbstractActiveProducer(Producer<T> producer, @Nullable Sink<T> sink) {
 		this.producer = producer;
-		this.sink = (sink != null ? sink : new BlockingQueueBufferingSource<>());
+		this.sink = (sink != null ? sink : new BlockingQueueSource<>());
 	}
 
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public Source<T> source() {
-		if (this.sink instanceof BufferingSource<T> source) {
-			return new CancellationPropagatingSource<>(source);
+		if (this.sink instanceof Source) {
+			return new CancellationPropagatingSource<>((Source<T>) this.sink);
 		}
 		throw new IllegalStateException(
-				this.sink.getClass().getName() + " is not a BufferingSource");
+				this.sink.getClass().getName() + " is not a Source");
 	}
 
 
@@ -84,7 +85,7 @@ public abstract class AbstractActiveProducer<T> implements ActiveProducer<T> {
 	 */
 	private class CancellationPropagatingSource<T> extends SourceDecorator<T> {
 
-		CancellationPropagatingSource(BufferingSource<T> source) {
+		CancellationPropagatingSource(Source<T> source) {
 			super(source);
 		}
 

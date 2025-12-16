@@ -22,8 +22,8 @@ public class ClientApp {
 		RestClient client = RestClient.create("http://localhost:8080");
 
 //		runSource(restClient);
-		runBufferingSource(client);
-//		cancelBufferingSource(client);
+		runBlockingQueueSource(client);
+//		cancelBlockingQueueSource(client);
 
 		logger.info("Exiting");
 		System.exit(0);
@@ -45,10 +45,10 @@ public class ClientApp {
 		}
 	}
 
-	private static void runBufferingSource(RestClient client) throws Exception {
+	private static void runBlockingQueueSource(RestClient client) throws Exception {
 
 		try (Source<ServerSentEvent<String>> source =
-					 client.get().uri("/sse").exchangeForRequiredValue(toBufferingSource(), false)) {
+					 client.get().uri("/sse").exchangeForRequiredValue(toBlockingQueueSource(), false)) {
 
 			while (true) {
 				ServerSentEvent<String> event = source.tryReceive(Duration.ofSeconds(2));
@@ -65,10 +65,10 @@ public class ClientApp {
 		}
 	}
 
-	private static void cancelBufferingSource(RestClient client) throws Exception {
+	private static void cancelBlockingQueueSource(RestClient client) throws Exception {
 
 		try (Source<ServerSentEvent<String>> source =
-					 client.get().uri("/sse").exchangeForRequiredValue(toBufferingSource(), false)) {
+					 client.get().uri("/sse").exchangeForRequiredValue(toBlockingQueueSource(), false)) {
 
 			ServerSentEvent<String> event = source.tryReceive(Duration.ofSeconds(2));
 			logger.info("Got " + event);
@@ -77,7 +77,7 @@ public class ClientApp {
 		}
 	}
 
-	private static RequiredValueExchangeFunction<Source<ServerSentEvent<String>>> toBufferingSource() {
+	private static RequiredValueExchangeFunction<Source<ServerSentEvent<String>>> toBlockingQueueSource() {
 		return (request, response) -> {
 			ServerSentEventSource<String> source = new ServerSentEventSource<>(request, response);
 			ActiveProducer<ServerSentEvent<String>> producer = StructuredActiveProducer.create(source);

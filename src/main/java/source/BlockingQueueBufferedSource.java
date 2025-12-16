@@ -10,7 +10,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.jspecify.annotations.Nullable;
 
-public class BlockingQueueSource<T> implements Source<T>, Sink<T> {
+public class BlockingQueueBufferedSource<T> implements BufferedSource<T>, Sink<T> {
 
 	private final BlockingQueue<T> queue;
 
@@ -19,11 +19,11 @@ public class BlockingQueueSource<T> implements Source<T>, Sink<T> {
 	private volatile boolean closed;
 
 
-	public BlockingQueueSource() {
+	public BlockingQueueBufferedSource() {
 		this(128);
 	}
 
-	public BlockingQueueSource(int capacity) {
+	public BlockingQueueBufferedSource(int capacity) {
 		this.queue = (capacity > 0 ? new LinkedBlockingQueue<>(capacity) : new SynchronousQueue<>());
 	}
 

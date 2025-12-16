@@ -5,7 +5,7 @@ import java.time.Duration;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import source.ActiveProducer;
-import source.Source;
+import source.BufferedSource;
 import source.StructuredActiveProducer;
 
 import org.springframework.http.codec.ServerSentEvent;
@@ -17,7 +17,7 @@ public class ClientApp {
 	private final static Log logger =  LogFactory.getLog(ClientApp.class);
 
 
-	public static void main(String[] args) throws Exception {
+	static void main(String[] args) throws Exception {
 
 		RestClient client = RestClient.create("http://localhost:8080");
 
@@ -47,8 +47,8 @@ public class ClientApp {
 
 	private static void runBlockingQueueSource(RestClient client) throws Exception {
 
-		try (Source<ServerSentEvent<String>> source =
-					 client.get().uri("/sse").exchangeForRequiredValue(toBlockingQueueSource(), false)) {
+		try (BufferedSource<ServerSentEvent<String>> source =
+					 client.get().uri("/sse").exchangeForRequiredValue(toBufferedSource(), false)) {
 
 			while (true) {
 				ServerSentEvent<String> event = source.tryReceive(Duration.ofSeconds(2));
@@ -67,8 +67,8 @@ public class ClientApp {
 
 	private static void cancelBlockingQueueSource(RestClient client) throws Exception {
 
-		try (Source<ServerSentEvent<String>> source =
-					 client.get().uri("/sse").exchangeForRequiredValue(toBlockingQueueSource(), false)) {
+		try (BufferedSource<ServerSentEvent<String>> source =
+					 client.get().uri("/sse").exchangeForRequiredValue(toBufferedSource(), false)) {
 
 			ServerSentEvent<String> event = source.tryReceive(Duration.ofSeconds(2));
 			logger.info("Got " + event);
@@ -77,13 +77,13 @@ public class ClientApp {
 		}
 	}
 
-	private static RequiredValueExchangeFunction<Source<ServerSentEvent<String>>> toBlockingQueueSource() {
+	private static RequiredValueExchangeFunction<BufferedSource<ServerSentEvent<String>>> toBufferedSource() {
 		return (request, response) -> {
 			ServerSentEventSource<String> source = new ServerSentEventSource<>(request, response);
 			ActiveProducer<ServerSentEvent<String>> producer = StructuredActiveProducer.create(source);
 //			ActiveProducer<ServerSentEvent<String>> producer = ExecutorActiveProducer.create(source);
 			producer.start();
-			return producer.source();
+			return producer.bufferedSource();
 		};
 	}
 

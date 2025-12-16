@@ -25,15 +25,15 @@ public abstract class AbstractActiveProducer<T> implements ActiveProducer<T> {
 
 	protected AbstractActiveProducer(Producer<T> producer, @Nullable Sink<T> sink) {
 		this.producer = producer;
-		this.sink = (sink != null ? sink : new BlockingQueueSource<>());
+		this.sink = (sink != null ? sink : new BlockingQueueBufferedSource<>());
 	}
 
 
 	@SuppressWarnings("unchecked")
 	@Override
-	public Source<T> source() {
-		if (this.sink instanceof Source) {
-			return new CancellationPropagatingSource<>((Source<T>) this.sink);
+	public BufferedSource<T> bufferedSource() {
+		if (this.sink instanceof BufferedSource) {
+			return new CancellationPropagatingBufferedSource<>((BufferedSource<T>) this.sink);
 		}
 		throw new IllegalStateException(
 				this.sink.getClass().getName() + " is not a Source");
@@ -83,16 +83,18 @@ public abstract class AbstractActiveProducer<T> implements ActiveProducer<T> {
 	 * Intercept {@link Source#close()} and consumer thread interrupts, and
 	 * propagate those to the Producer task by calling {@link #stop()}.
 	 */
-	private class CancellationPropagatingSource<T> extends SourceDecorator<T> {
+	private class CancellationPropagatingBufferedSource<T> implements BufferedSource<T> {
 
-		CancellationPropagatingSource(Source<T> source) {
-			super(source);
+		private final BufferedSource<T> delegate;
+
+		CancellationPropagatingBufferedSource(BufferedSource<T> source) {
+			this.delegate = source;
 		}
 
 		@Override
 		public @Nullable T receive() throws IOException, ClosedException, InterruptedException {
 			try {
-				return super.receive();
+				return this.delegate.receive();
 			}
 			catch (InterruptedException ex) {
 				stop();
@@ -103,7 +105,7 @@ public abstract class AbstractActiveProducer<T> implements ActiveProducer<T> {
 		@Override
 		public @Nullable T tryReceive(Duration timeout) throws IOException, ClosedException, InterruptedException {
 			try {
-				return super.tryReceive(timeout);
+				return this.delegate.tryReceive(timeout);
 			}
 			catch (InterruptedException ex) {
 				stop();
@@ -120,8 +122,23 @@ public abstract class AbstractActiveProducer<T> implements ActiveProducer<T> {
 				Thread.currentThread().interrupt();
 			}
 			finally {
-				super.close();
+				this.delegate.close();
 			}
+		}
+
+		@Override
+		public boolean isClosed() {
+			return this.delegate.isClosed();
+		}
+
+		@Override
+		public @Nullable Throwable getCompletionException() {
+			return this.delegate.getCompletionException();
+		}
+
+		@Override
+		public @Nullable T tryReceive() throws IOException, ClosedException {
+			return this.delegate.tryReceive();
 		}
 	}
 

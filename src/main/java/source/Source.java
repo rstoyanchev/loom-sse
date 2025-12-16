@@ -33,20 +33,6 @@ public interface Source<T> extends AutoCloseable {
 	@Nullable T receive() throws IOException, ClosedException, InterruptedException;
 
 	/**
-	 * Receive the next item, blocking if necessary up to the given duration.
-	 * @return the item, or {@code null} if an item could not be received
-	 * before the timeout.
-	 */
-	@Nullable T tryReceive(Duration timeout) throws IOException, ClosedException, InterruptedException;
-
-	/**
-	 * Try to receive an item.
-	 * @return the item, or {@code null} if there aren't any items available to
-	 * receive without blocking at this time.
-	 */
-	@Nullable T tryReceive() throws IOException, ClosedException;
-
-	/**
 	 * Close the Source from the receiving side.
 	 */
 	@Override

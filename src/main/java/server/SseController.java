@@ -16,28 +16,65 @@
 
 package server;
 
-import java.time.Duration;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
-import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 @RestController
 public class SseController {
 
+	private static final Logger logger = LogManager.getLogger(SseController.class);
+
+
 	@GetMapping("/sse")
-	public Flux<ServerSentEvent<String>> stream() {
-		int i = 1;
-		return Flux.just(createEvent(i))
-				.concatWith(Mono.delay(Duration.ofSeconds(5)).thenMany(Flux.empty()))
-				.concatWithValues(createEvent(2));
+	public SseEmitter sse() {
+		SseEmitter emitter = new SseEmitter();
+		Thread.ofVirtual().start(() -> {
+			try {
+				emitter.send("data-1");
+				Thread.sleep(5000);
+				emitter.send("data-2");
+				emitter.complete();
+			}
+			catch (Exception ex) {
+				logger.error(ex);
+			}
+		});
+		return emitter;
 	}
 
-	private static ServerSentEvent<String> createEvent(int i) {
-		return ServerSentEvent.builder("data-" + i).build();
+	@GetMapping("/sse-complete-empty")
+	public SseEmitter sseEmpty() {
+		SseEmitter emitter = new SseEmitter();
+		Thread.ofVirtual().start(() -> {
+			try {
+				Thread.sleep(2000);
+				emitter.complete();
+			}
+			catch (Exception ex) {
+				logger.error(ex);
+			}
+		});
+		return emitter;
+	}
+
+	@GetMapping("/sse-complete-with-error")
+	public SseEmitter sseError() {
+		SseEmitter emitter = new SseEmitter();
+		Thread.ofVirtual().start(() -> {
+			try {
+				emitter.send("data-1");
+				Thread.sleep(2000);
+				emitter.completeWithError(new Exception("simulated error"));
+			}
+			catch (Exception ex) {
+				logger.error(ex);
+			}
+		});
+		return emitter;
 	}
 
 }

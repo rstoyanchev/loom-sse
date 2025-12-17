@@ -13,7 +13,8 @@ import org.jspecify.annotations.Nullable;
 
 /**
  * Base class for {@link ActiveSource} implementations that provides most of the
- * implementation, and allows subclasses to manage the producing subtask.
+ * implementation, with subclasses responsible for managing the starting and
+ * stopping the active task.
  */
 public abstract class AbstractActiveSource<T> implements ActiveSource<T> {
 
@@ -22,13 +23,13 @@ public abstract class AbstractActiveSource<T> implements ActiveSource<T> {
 
 	private final Source<T> source;
 
-	private final BlockingQueue<T> queue;
+	private final BlockingQueue<Object> queue;
 
 	private @Nullable T nextItem;
 
 	private boolean started;
 
-	private volatile @Nullable Object completion; // Boolean.TRUE | IOException | RuntimeException
+	private volatile @Nullable Completion completion;
 
 	private volatile boolean closed;
 
@@ -39,15 +40,14 @@ public abstract class AbstractActiveSource<T> implements ActiveSource<T> {
 	}
 
 
-	protected abstract void start(Callable<Void> producer);
+	/**
+	 * Start the receiving task.
+	 */
+	protected abstract void start(Callable<Void> receiver);
 
-	private void checkStarted() {
-		if (!this.started) {
-			this.started = true;
-			start(new Producer());
-		}
-	}
-
+	/**
+	 * Stop the receiving task.
+	 */
 	protected abstract void stop();
 
 
@@ -61,16 +61,17 @@ public abstract class AbstractActiveSource<T> implements ActiveSource<T> {
 		if (this.closed) {
 			return returnCompletion();
 		}
-		checkStarted();
+		startIfNecessary();
 		try {
-			this.nextItem = this.queue.take();
+			Object item = this.queue.take();
+			setNextItem(item);
 		}
 		catch (InterruptedException ex) {
 			close();
 			throw ex;
 		}
 		closeAfterCompletion();
-		return true;
+		return (this.nextItem != null);
 	}
 
 	@Override
@@ -78,10 +79,10 @@ public abstract class AbstractActiveSource<T> implements ActiveSource<T> {
 		if (this.closed) {
 			return returnCompletion();
 		}
-		checkStarted();
+		startIfNecessary();
 		try {
-			this.nextItem = this.queue.poll(
-					TimeUnit.MILLISECONDS.convert(timeout), TimeUnit.MILLISECONDS);
+			Object item = this.queue.poll(TimeUnit.MILLISECONDS.convert(timeout), TimeUnit.MILLISECONDS);
+			setNextItem(item);
 		}
 		catch (InterruptedException ex) {
 			close();
@@ -96,19 +97,37 @@ public abstract class AbstractActiveSource<T> implements ActiveSource<T> {
 		if (this.closed) {
 			return returnCompletion();
 		}
-		checkStarted();
-		this.nextItem = this.queue.poll();
+		startIfNecessary();
+		Object item = this.queue.poll();
+		setNextItem(item);
 		closeAfterCompletion();
 		return (this.nextItem != null);
 	}
 
 	private boolean returnCompletion() throws IOException {
-		return switch (this.completion) {
-			case IOException ex -> throw ex;
-			case RuntimeException ex -> throw ex;
-			case Throwable ex -> throw new IllegalStateException(ex);
-			case null, default -> false;
-		};
+		Completion c = this.completion;
+		if (c != null) {
+			c.throwIfCompletedExceptionally();
+		}
+		return false;
+	}
+
+	private void startIfNecessary() {
+		if (!this.started) {
+			this.started = true;
+			start(new ReceiveTask());
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private void setNextItem(Object item) throws IOException {
+		if (item instanceof Completion c) {
+			this.completion = c;
+			c.throwIfCompletedExceptionally();
+		}
+		else {
+			this.nextItem = (T) item;
+		}
 	}
 
 	private void closeAfterCompletion() {
@@ -129,22 +148,15 @@ public abstract class AbstractActiveSource<T> implements ActiveSource<T> {
 
 	@Override
 	public void close() {
+		this.closed = true;
 		try {
 			stop();
 		}
 		finally {
-			this.closed = true;
 			this.queue.clear(); // discarded items
 		}
 	}
 
-
-	private void complete(Object completion) {
-		// TODO: how to interrupt blocked receivers?
-		if (this.completion == null) {
-			this.completion = completion;
-		}
-	}
 
 	@Override
 	public String toString() {
@@ -152,7 +164,25 @@ public abstract class AbstractActiveSource<T> implements ActiveSource<T> {
 	}
 
 
-	private class Producer implements Callable<Void> {
+	private record Completion(@Nullable Throwable exception) {
+
+		public void throwIfCompletedExceptionally() throws IOException {
+			if (exception() == null) {
+				return;
+			}
+			switch (exception) {
+				case IOException ex -> throw ex;
+				case RuntimeException ex -> throw ex;
+				case Throwable ex -> throw new IllegalStateException(ex);
+			}
+		}
+	}
+
+
+	/**
+	 * Task that receives from the target Source, and puts items into the BlockingQueue.
+	 */
+	private class ReceiveTask implements Callable<Void> {
 
 		@Override
 		public Void call() throws Exception {
@@ -161,7 +191,7 @@ public abstract class AbstractActiveSource<T> implements ActiveSource<T> {
 					while (source.receiveNext()) {
 						queue.put(source.next());
 					}
-					complete(Boolean.TRUE);
+					complete(null);
 				}
 				catch (InterruptedException ex) {
 					complete(ex);
@@ -172,6 +202,11 @@ public abstract class AbstractActiveSource<T> implements ActiveSource<T> {
 				}
 			}
 			return null;
+		}
+
+		private void complete(@Nullable Throwable ex) throws InterruptedException {
+			Completion c = new Completion(ex);
+			queue.put(c);
 		}
 	}
 

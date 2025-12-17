@@ -16,7 +16,7 @@ public class ExecutorActiveSource<T> extends AbstractActiveSource<T> {
 
 	private @Nullable Future<?> future;
 
-	private final CountDownLatch producerLatch = new CountDownLatch(1);
+	private final CountDownLatch receiverLatch = new CountDownLatch(1);
 
 
 	private ExecutorActiveSource(Source<T> source) {
@@ -26,31 +26,31 @@ public class ExecutorActiveSource<T> extends AbstractActiveSource<T> {
 
 
 	@Override
-	protected void start(Callable<Void> producer) {
+	protected void start(Callable<Void> receiver) {
 		this.future = this.executorService.submit(() -> {
 			try {
-				return producer.call();
+				return receiver.call();
 			}
 			finally {
-				this.producerLatch.countDown();
+				this.receiverLatch.countDown();
 			}
 		});
 	}
 
 	@Override
 	protected void stop() {
-		Assert.state(this.future != null, "Expected Future of Producer");
+		Assert.state(this.future != null, "Expected Future of receiver task");
 		this.future.cancel(true);
 		try {
-			this.producerLatch.await();
+			this.receiverLatch.await();
 		}
 		catch (InterruptedException ex) {
-			logger.info("Interrupted while waiting for producer to stop");
+			logger.info("Interrupted while waiting for receiver task to stop");
 		}
 	}
 
 
-	public static <T> ExecutorActiveSource<T> create(Source<T> source) {
+	public static <T> ExecutorActiveSource<T> from(Source<T> source) {
 		return new ExecutorActiveSource<>(source);
 	}
 

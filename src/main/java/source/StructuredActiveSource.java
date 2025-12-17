@@ -3,6 +3,7 @@ package source;
 import java.util.concurrent.Callable;
 import java.util.concurrent.StructuredTaskScope;
 
+@SuppressWarnings("preview")
 public class StructuredActiveSource<T> extends AbstractActiveSource<T> {
 
 	private final StructuredTaskScope<Void, ?> scope;
@@ -14,8 +15,8 @@ public class StructuredActiveSource<T> extends AbstractActiveSource<T> {
 
 
 	@Override
-	protected void start(Callable<Void> producer) {
-		this.scope.fork(producer);
+	protected void start(Callable<Void> receiver) {
+		this.scope.fork(receiver);
 	}
 
 	@Override
@@ -36,7 +37,7 @@ public class StructuredActiveSource<T> extends AbstractActiveSource<T> {
 	}
 
 
-	public static <T> StructuredActiveSource<T> create(Source<T> source) {
+	public static <T> StructuredActiveSource<T> from(Source<T> source) {
 		return new StructuredActiveSource<>(source);
 	}
 

@@ -20,18 +20,25 @@ public class ClientApp {
 
 		RestClient client = RestClient.create("http://localhost:8080");
 
-//		runSource(restClient);
-		runBlockingQueueSource(client);
-//		cancelBlockingQueueSource(client);
+		runSourceWithReceive(client);
+//		runActiveSourceWithTryReceive(client);
+
+//		closeSource(client);
+//		sourceCompletes(client);
+//		sourceCompletesWithError(client);
 
 		logger.info("Exiting");
 		System.exit(0);
 	}
 
-	private static void runSource(RestClient client) throws Exception {
 
-		try (ServerSentEventSource<String> source =
-					 client.get().uri("/sse").exchangeForRequiredValue(ServerSentEventSource::new, false)) {
+	/**
+	 * Receive from an ActiveSource in a loop.
+	 */
+	private static void runSourceWithReceive(RestClient client) throws Exception {
+
+		try (ActiveSource<ServerSentEvent<String>> source =
+					 client.get().uri("/sse").exchangeForRequiredValue(toActiveSource(), false)) {
 
 			while (source.receiveNext()) {
 				ServerSentEvent<String> event = source.next();
@@ -40,10 +47,13 @@ public class ClientApp {
 		}
 	}
 
-	private static void runBlockingQueueSource(RestClient client) throws Exception {
+	/**
+	 * Receive via ActiveSource with tryReceiveNext.
+	 */
+	private static void runActiveSourceWithTryReceive(RestClient client) throws Exception {
 
 		try (ActiveSource<ServerSentEvent<String>> source =
-					 client.get().uri("/sse").exchangeForRequiredValue(toBufferedSource(), false)) {
+					 client.get().uri("/sse").exchangeForRequiredValue(toActiveSource(), false)) {
 
 			while (!source.isClosed()) {
 				if (source.tryReceiveNext(Duration.ofSeconds(2))) {
@@ -56,10 +66,13 @@ public class ClientApp {
 		}
 	}
 
-	private static void cancelBlockingQueueSource(RestClient client) throws Exception {
+	/**
+	 * The closing of an ActiveSource should stop the receiver subtask.
+	 */
+	private static void closeSource(RestClient client) throws Exception {
 
 		try (ActiveSource<ServerSentEvent<String>> source =
-					 client.get().uri("/sse").exchangeForRequiredValue(toBufferedSource(), false)) {
+					 client.get().uri("/sse").exchangeForRequiredValue(toActiveSource(), false)) {
 
 			if (source.tryReceiveNext(Duration.ofSeconds(2))) {
 				logger.info("Got " + source.next());
@@ -73,12 +86,54 @@ public class ClientApp {
 		}
 	}
 
-	private static RequiredValueExchangeFunction<ActiveSource<ServerSentEvent<String>>> toBufferedSource() {
+	/**
+	 * Completion of the receiver subtask should unblock receivers.
+	 */
+	private static void sourceCompletes(RestClient client) throws Exception {
+
+		try (ActiveSource<ServerSentEvent<String>> source =
+					 client.get().uri("/sse-complete-empty").exchangeForRequiredValue(toActiveSource(), false)) {
+
+			boolean result = source.receiveNext();
+			logger.info("Got " + result);
+		}
+	}
+
+
+	/**
+	 * Completion of the receiver subtask should unblock receivers.
+	 */
+	private static void sourceCompletesWithError(RestClient client) throws Exception {
+
+		try (ActiveSource<ServerSentEvent<String>> source =
+					 client.get().uri("/sse-complete-with-error").exchangeForRequiredValue(toActiveSource(), false)) {
+
+			if (source.receiveNext()) {
+				logger.info("Got " + source.next());
+			}
+			else {
+				logger.info("Timed out");
+			}
+
+			try {
+				source.receiveNext();
+				throw new IllegalStateException("Expected exception");
+			}
+			catch (Exception ex) {
+				logger.info("Error: " + ex.getMessage());
+			}
+		}
+	}
+
+	private static RequiredValueExchangeFunction<ActiveSource<ServerSentEvent<String>>> toActiveSource() {
 		return (request, response) -> {
+			if (response.getStatusCode().isError()) {
+				throw response.createException();
+			}
 			ServerSentEventSource<String> source = new ServerSentEventSource<>(request, response);
-			StructuredActiveSource<ServerSentEvent<String>> producer = StructuredActiveSource.create(source);
-//			StructuredActiveProducer<ServerSentEvent<String>> producer = ExecutorActiveProducer.create(source);
-			return producer;
+			StructuredActiveSource<ServerSentEvent<String>> activeSource = StructuredActiveSource.from(source);
+//			ExecutorActiveSource<ServerSentEvent<String>> activeSource = ExecutorActiveSource.from(source);
+			return activeSource;
 		};
 	}
 

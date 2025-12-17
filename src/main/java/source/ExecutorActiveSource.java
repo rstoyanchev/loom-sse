@@ -10,7 +10,7 @@ import org.jspecify.annotations.Nullable;
 
 import org.springframework.util.Assert;
 
-public class ExecutorBufferedSource<T> extends AbstractBufferedSource<T> {
+public class ExecutorActiveSource<T> extends AbstractActiveSource<T> {
 
 	private final ExecutorService executorService;
 
@@ -19,7 +19,7 @@ public class ExecutorBufferedSource<T> extends AbstractBufferedSource<T> {
 	private final CountDownLatch producerLatch = new CountDownLatch(1);
 
 
-	private ExecutorBufferedSource(Source<T> source) {
+	private ExecutorActiveSource(Source<T> source) {
 		super(source);
 		this.executorService = Executors.newVirtualThreadPerTaskExecutor();
 	}
@@ -50,8 +50,8 @@ public class ExecutorBufferedSource<T> extends AbstractBufferedSource<T> {
 	}
 
 
-	public static <T> ExecutorBufferedSource<T> create(Source<T> source) {
-		return new ExecutorBufferedSource<>(source);
+	public static <T> ExecutorActiveSource<T> create(Source<T> source) {
+		return new ExecutorActiveSource<>(source);
 	}
 
 }

@@ -4,8 +4,8 @@ import java.time.Duration;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import source.BufferedSource;
-import source.StructuredBufferedSource;
+import source.ActiveSource;
+import source.StructuredActiveSource;
 
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.client.RestClient;
@@ -42,7 +42,7 @@ public class ClientApp {
 
 	private static void runBlockingQueueSource(RestClient client) throws Exception {
 
-		try (BufferedSource<ServerSentEvent<String>> source =
+		try (ActiveSource<ServerSentEvent<String>> source =
 					 client.get().uri("/sse").exchangeForRequiredValue(toBufferedSource(), false)) {
 
 			while (!source.isClosed()) {
@@ -58,7 +58,7 @@ public class ClientApp {
 
 	private static void cancelBlockingQueueSource(RestClient client) throws Exception {
 
-		try (BufferedSource<ServerSentEvent<String>> source =
+		try (ActiveSource<ServerSentEvent<String>> source =
 					 client.get().uri("/sse").exchangeForRequiredValue(toBufferedSource(), false)) {
 
 			if (source.tryReceiveNext(Duration.ofSeconds(2))) {
@@ -73,10 +73,10 @@ public class ClientApp {
 		}
 	}
 
-	private static RequiredValueExchangeFunction<BufferedSource<ServerSentEvent<String>>> toBufferedSource() {
+	private static RequiredValueExchangeFunction<ActiveSource<ServerSentEvent<String>>> toBufferedSource() {
 		return (request, response) -> {
 			ServerSentEventSource<String> source = new ServerSentEventSource<>(request, response);
-			StructuredBufferedSource<ServerSentEvent<String>> producer = StructuredBufferedSource.create(source);
+			StructuredActiveSource<ServerSentEvent<String>> producer = StructuredActiveSource.create(source);
 //			StructuredActiveProducer<ServerSentEvent<String>> producer = ExecutorActiveProducer.create(source);
 			return producer;
 		};

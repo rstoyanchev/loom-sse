@@ -3,11 +3,11 @@ package source;
 import java.util.concurrent.Callable;
 import java.util.concurrent.StructuredTaskScope;
 
-public class StructuredBufferedSource<T> extends AbstractBufferedSource<T> {
+public class StructuredActiveSource<T> extends AbstractActiveSource<T> {
 
 	private final StructuredTaskScope<Void, ?> scope;
 
-	public StructuredBufferedSource(Source<T> source) {
+	public StructuredActiveSource(Source<T> source) {
 		super(source);
 		this.scope = StructuredTaskScope.open(StructuredTaskScope.Joiner.anySuccessfulResultOrThrow());
 	}
@@ -36,8 +36,8 @@ public class StructuredBufferedSource<T> extends AbstractBufferedSource<T> {
 	}
 
 
-	public static <T> StructuredBufferedSource<T> create(Source<T> source) {
-		return new StructuredBufferedSource<>(source);
+	public static <T> StructuredActiveSource<T> create(Source<T> source) {
+		return new StructuredActiveSource<>(source);
 	}
 
 }

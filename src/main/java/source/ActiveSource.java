@@ -4,11 +4,13 @@ import java.io.IOException;
 import java.time.Duration;
 
 /**
- * Extension of {@link Source} that exposes polling {@code tryReceive} methods
- * that return control to the caller after a specified timeout duration.
+ * Extension of {@link Source} that uses an active task to prefetch items from
+ * another {@link Source} and stores fetched items in a
+ * {@link java.util.concurrent.BlockingQueue}.
+ *
  * @param <T> the types of items received through the Source
  */
-public interface BufferedSource<T> extends Source<T> {
+public interface ActiveSource<T> extends Source<T> {
 
 	/**
 	 * Trigger receiving and block up to the specified time until at least one

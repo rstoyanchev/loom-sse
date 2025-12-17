@@ -11,7 +11,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 
-public abstract class AbstractBufferedSource<T> implements BufferedSource<T> {
+/**
+ * Base class for {@link ActiveSource} implementations that provides most of the
+ * implementation, and allows subclasses to manage the producing subtask.
+ */
+public abstract class AbstractActiveSource<T> implements ActiveSource<T> {
 
 	protected final Logger logger = LogManager.getLogger(getClass());
 
@@ -29,7 +33,7 @@ public abstract class AbstractBufferedSource<T> implements BufferedSource<T> {
 	private volatile boolean closed;
 
 
-	public AbstractBufferedSource(Source<T> source) {
+	public AbstractActiveSource(Source<T> source) {
 		this.source = source;
 		this.queue = new LinkedBlockingQueue<>(128);
 	}

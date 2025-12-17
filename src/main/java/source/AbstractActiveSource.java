@@ -22,6 +22,8 @@ public abstract class AbstractActiveSource<T> implements ActiveSource<T> {
 
 	protected final Logger logger = LogManager.getLogger(getClass());
 
+	private static final Object COMPLETE = new Object();
+
 
 	private final Source<T> delegate;
 
@@ -123,8 +125,11 @@ public abstract class AbstractActiveSource<T> implements ActiveSource<T> {
 
 	@SuppressWarnings("unchecked")
 	private void setReceivedItem(Object item) throws IOException {
-		if (item instanceof Completion c) {
-			this.completion = c;
+		if (item == COMPLETE) {
+			Completion c = this.completion;
+			if (c == null) {
+				throw new IllegalStateException("Completion not set");
+			}
 			c.throwIfCompletedExceptionally();
 		}
 		else {
@@ -210,8 +215,8 @@ public abstract class AbstractActiveSource<T> implements ActiveSource<T> {
 		}
 
 		private void complete(@Nullable Throwable ex) throws InterruptedException {
-			Completion c = new Completion(ex);
-			queue.put(c);
+			completion = new Completion(ex);
+			queue.put(COMPLETE);
 		}
 	}
 

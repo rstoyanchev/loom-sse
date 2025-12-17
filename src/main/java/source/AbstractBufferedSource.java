@@ -3,69 +3,48 @@ package source;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.Callable;
 import java.util.concurrent.LinkedBlockingQueue;
-import java.util.concurrent.SynchronousQueue;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 
-public class BlockingQueueBufferedSource<T> implements BufferedSource<T>, Sink<T> {
+public abstract class AbstractBufferedSource<T> implements BufferedSource<T> {
+
+	protected final Logger logger = LogManager.getLogger(getClass());
+
+
+	private final Source<T> source;
 
 	private final BlockingQueue<T> queue;
 
 	private @Nullable T nextItem;
+
+	private boolean started;
 
 	private volatile @Nullable Object completion; // Boolean.TRUE | IOException | RuntimeException
 
 	private volatile boolean closed;
 
 
-	public BlockingQueueBufferedSource() {
-		this(128);
-	}
-
-	public BlockingQueueBufferedSource(int capacity) {
-		this.queue = (capacity > 0 ? new LinkedBlockingQueue<>(capacity) : new SynchronousQueue<>());
+	public AbstractBufferedSource(Source<T> source) {
+		this.source = source;
+		this.queue = new LinkedBlockingQueue<>(128);
 	}
 
 
-	// Sink
+	protected abstract void start(Callable<Void> producer);
 
-
-	@Override
-	public void send(T item) throws InterruptedException {
-		this.queue.put(item);
-	}
-
-	@Override
-	public boolean trySend(T item, Duration timeout) throws InterruptedException {
-		return this.queue.offer(item, TimeUnit.MILLISECONDS.convert(timeout), TimeUnit.MILLISECONDS);
-	}
-
-	@Override
-	public boolean trySend(T item) {
-		return this.queue.offer(item);
-	}
-
-	@Override
-	public void complete() {
-		complete(Boolean.TRUE);
-	}
-
-	@Override
-	public void completeExceptionally(Throwable cause) {
-		complete(cause != null ? cause : Boolean.TRUE);
-	}
-
-	private void complete(Object completion) {
-		// TODO: how to interrupt blocked receivers?
-		if (this.completion == null) {
-			this.completion = completion;
+	private void checkStarted() {
+		if (!this.started) {
+			this.started = true;
+			start(new Producer());
 		}
 	}
 
-
-	// Source
+	protected abstract void stop();
 
 
 	@Override
@@ -78,6 +57,7 @@ public class BlockingQueueBufferedSource<T> implements BufferedSource<T>, Sink<T
 		if (this.closed) {
 			return returnCompletion();
 		}
+		checkStarted();
 		try {
 			this.nextItem = this.queue.take();
 		}
@@ -94,6 +74,7 @@ public class BlockingQueueBufferedSource<T> implements BufferedSource<T>, Sink<T
 		if (this.closed) {
 			return returnCompletion();
 		}
+		checkStarted();
 		try {
 			this.nextItem = this.queue.poll(
 					TimeUnit.MILLISECONDS.convert(timeout), TimeUnit.MILLISECONDS);
@@ -111,6 +92,7 @@ public class BlockingQueueBufferedSource<T> implements BufferedSource<T>, Sink<T
 		if (this.closed) {
 			return returnCompletion();
 		}
+		checkStarted();
 		this.nextItem = this.queue.poll();
 		closeAfterCompletion();
 		return (this.nextItem != null);
@@ -143,8 +125,50 @@ public class BlockingQueueBufferedSource<T> implements BufferedSource<T>, Sink<T
 
 	@Override
 	public void close() {
-		this.closed = true;
-		this.queue.clear(); // discarded items
+		try {
+			stop();
+		}
+		finally {
+			this.closed = true;
+			this.queue.clear(); // discarded items
+		}
+	}
+
+
+	private void complete(Object completion) {
+		// TODO: how to interrupt blocked receivers?
+		if (this.completion == null) {
+			this.completion = completion;
+		}
+	}
+
+	@Override
+	public String toString() {
+		return getClass().getSimpleName() + " for " + this.source.toString();
+	}
+
+
+	private class Producer implements Callable<Void> {
+
+		@Override
+		public Void call() throws Exception {
+			try (source) {
+				try {
+					while (source.receiveNext()) {
+						queue.put(source.next());
+					}
+					complete(Boolean.TRUE);
+				}
+				catch (InterruptedException ex) {
+					complete(ex);
+					throw ex;
+				}
+				catch (Throwable ex) {
+					complete(ex);
+				}
+			}
+			return null;
+		}
 	}
 
 }

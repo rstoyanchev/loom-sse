@@ -4,9 +4,8 @@ import java.time.Duration;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import source.ActiveProducer;
 import source.BufferedSource;
-import source.StructuredActiveProducer;
+import source.StructuredBufferedSource;
 
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.client.RestClient;
@@ -77,10 +76,9 @@ public class ClientApp {
 	private static RequiredValueExchangeFunction<BufferedSource<ServerSentEvent<String>>> toBufferedSource() {
 		return (request, response) -> {
 			ServerSentEventSource<String> source = new ServerSentEventSource<>(request, response);
-			ActiveProducer<ServerSentEvent<String>> producer = StructuredActiveProducer.create(source);
-//			ActiveProducer<ServerSentEvent<String>> producer = ExecutorActiveProducer.create(source);
-			producer.start();
-			return producer.bufferedSource();
+			StructuredBufferedSource<ServerSentEvent<String>> producer = StructuredBufferedSource.create(source);
+//			StructuredActiveProducer<ServerSentEvent<String>> producer = ExecutorActiveProducer.create(source);
+			return producer;
 		};
 	}
 

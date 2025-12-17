@@ -1,5 +1,6 @@
 package source;
 
+import java.util.concurrent.Callable;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -9,7 +10,7 @@ import org.jspecify.annotations.Nullable;
 
 import org.springframework.util.Assert;
 
-public class ExecutorActiveProducer<T> extends AbstractActiveProducer<T> {
+public class ExecutorBufferedSource<T> extends AbstractBufferedSource<T> {
 
 	private final ExecutorService executorService;
 
@@ -18,18 +19,17 @@ public class ExecutorActiveProducer<T> extends AbstractActiveProducer<T> {
 	private final CountDownLatch producerLatch = new CountDownLatch(1);
 
 
-	private ExecutorActiveProducer(Source<T> source, @Nullable ExecutorService executorService) {
-		super(source, null);
-		this.executorService = (executorService != null ?
-				executorService : Executors.newVirtualThreadPerTaskExecutor());
+	private ExecutorBufferedSource(Source<T> source) {
+		super(source);
+		this.executorService = Executors.newVirtualThreadPerTaskExecutor();
 	}
 
 
 	@Override
-	protected void startInternal() {
+	protected void start(Callable<Void> producer) {
 		this.future = this.executorService.submit(() -> {
 			try {
-				return getProducerTask().call();
+				return producer.call();
 			}
 			finally {
 				this.producerLatch.countDown();
@@ -38,7 +38,7 @@ public class ExecutorActiveProducer<T> extends AbstractActiveProducer<T> {
 	}
 
 	@Override
-	protected void stopInternal() {
+	protected void stop() {
 		Assert.state(this.future != null, "Expected Future of Producer");
 		this.future.cancel(true);
 		try {
@@ -50,8 +50,8 @@ public class ExecutorActiveProducer<T> extends AbstractActiveProducer<T> {
 	}
 
 
-	public static <T> ExecutorActiveProducer<T> create(Source<T> source) {
-		return new ExecutorActiveProducer<>(source, null);
+	public static <T> ExecutorBufferedSource<T> create(Source<T> source) {
+		return new ExecutorBufferedSource<>(source);
 	}
 
 }

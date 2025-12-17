@@ -4,7 +4,8 @@ import java.io.IOException;
 import java.time.Duration;
 
 /**
- * A {@link Source} that returns items from a buffer.
+ * Extension of {@link Source} that exposes polling {@code tryReceive} methods
+ * that return control to the caller after a specified timeout duration.
  * @param <T> the types of items received through the Source
  */
 public interface BufferedSource<T> extends Source<T> {

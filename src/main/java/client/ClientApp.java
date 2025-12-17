@@ -21,7 +21,7 @@ public class ClientApp {
 		RestClient client = RestClient.create("http://localhost:8080");
 
 		runSourceWithReceive(client);
-//		runActiveSourceWithTryReceive(client);
+//		runSourceWithTryReceive(client);
 
 //		closeSource(client);
 //		sourceCompletes(client);
@@ -50,7 +50,7 @@ public class ClientApp {
 	/**
 	 * Receive via ActiveSource with tryReceiveNext.
 	 */
-	private static void runActiveSourceWithTryReceive(RestClient client) throws Exception {
+	private static void runSourceWithTryReceive(RestClient client) throws Exception {
 
 		try (ActiveSource<ServerSentEvent<String>> source =
 					 client.get().uri("/sse").exchangeForRequiredValue(toActiveSource(), false)) {

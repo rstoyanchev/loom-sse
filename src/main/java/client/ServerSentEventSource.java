@@ -61,11 +61,6 @@ public class ServerSentEventSource<T> implements Source<ServerSentEvent<T>> {
 	}
 
 
-	@Override
-	public boolean isClosed() {
-		return (this.closure != null);
-	}
-
 	@SuppressWarnings("unchecked")
 	@Override
 	public boolean receiveNext() throws IOException {

@@ -132,7 +132,7 @@ public class ClientApp {
 			}
 			ServerSentEventSource<String> source = new ServerSentEventSource<>(request, response);
 			StructuredActiveSource<ServerSentEvent<String>> activeSource = StructuredActiveSource.from(source);
-//			ExecutorActiveSource<ServerSentEvent<String>> activeSource = ExecutorActiveSource.from(source);
+//			ExecutorServiceActiveSource<ServerSentEvent<String>> activeSource = ExecutorServiceActiveSource.from(source);
 			return activeSource;
 		};
 	}

@@ -1,8 +1,12 @@
 package source;
 
 import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.StructuredTaskScope;
 
+/**
+ * ActiveSource that uses structured concurrency to execute the receiver task.
+ */
 @SuppressWarnings("preview")
 public class StructuredActiveSource<T> extends AbstractActiveSource<T> {
 

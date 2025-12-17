@@ -3,15 +3,10 @@ package source;
 import java.io.IOException;
 
 /**
- * Contract to consume items from a source.
- * @param <T> the types of items received through the Source
+ * Contract to receive items from a Source.
+ * @param <T> the types of items received from the Source
  */
 public interface Source<T> extends AutoCloseable {
-
-	/**
-	 * Return {@code true} if the Source is closed, and can no longer receive.
-	 */
-	boolean isClosed();
 
 	/**
 	 * Trigger receiving and block if necessary until at least one item is received.

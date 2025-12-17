@@ -12,20 +12,22 @@ import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Base class for {@link ActiveSource} implementations that provides most of the
- * implementation, with subclasses responsible for managing the starting and
- * stopping the active task.
+ * Abstract base class for {@link ActiveSource} implementations.
+ *
+ * <p>Provides most of the implementation, by receiving from the delegate Source
+ * and pushing into a {@link BlockingQueue}. Subclasses are implement methods to
+ * {@link #start(Callable) start} and {@link #stop() stop} the receiver task.
  */
 public abstract class AbstractActiveSource<T> implements ActiveSource<T> {
 
 	protected final Logger logger = LogManager.getLogger(getClass());
 
 
-	private final Source<T> source;
+	private final Source<T> delegate;
 
 	private final BlockingQueue<Object> queue;
 
-	private @Nullable T nextItem;
+	private @Nullable T receivedItem;
 
 	private boolean started;
 
@@ -34,19 +36,19 @@ public abstract class AbstractActiveSource<T> implements ActiveSource<T> {
 	private volatile boolean closed;
 
 
-	public AbstractActiveSource(Source<T> source) {
-		this.source = source;
+	public AbstractActiveSource(Source<T> delegate) {
+		this.delegate = delegate;
 		this.queue = new LinkedBlockingQueue<>(128);
 	}
 
 
 	/**
-	 * Start the receiving task.
+	 * Start the Receiver task.
 	 */
 	protected abstract void start(Callable<Void> receiver);
 
 	/**
-	 * Stop the receiving task.
+	 * Stop the Receiver task.
 	 */
 	protected abstract void stop();
 
@@ -64,14 +66,14 @@ public abstract class AbstractActiveSource<T> implements ActiveSource<T> {
 		startIfNecessary();
 		try {
 			Object item = this.queue.take();
-			setNextItem(item);
+			setReceivedItem(item);
 		}
 		catch (InterruptedException ex) {
 			close();
 			throw ex;
 		}
 		closeAfterCompletion();
-		return (this.nextItem != null);
+		return (this.receivedItem != null);
 	}
 
 	@Override
@@ -82,14 +84,14 @@ public abstract class AbstractActiveSource<T> implements ActiveSource<T> {
 		startIfNecessary();
 		try {
 			Object item = this.queue.poll(TimeUnit.MILLISECONDS.convert(timeout), TimeUnit.MILLISECONDS);
-			setNextItem(item);
+			setReceivedItem(item);
 		}
 		catch (InterruptedException ex) {
 			close();
 			throw ex;
 		}
 		closeAfterCompletion();
-		return (this.nextItem != null);
+		return (this.receivedItem != null);
 	}
 
 	@Override
@@ -99,9 +101,9 @@ public abstract class AbstractActiveSource<T> implements ActiveSource<T> {
 		}
 		startIfNecessary();
 		Object item = this.queue.poll();
-		setNextItem(item);
+		setReceivedItem(item);
 		closeAfterCompletion();
-		return (this.nextItem != null);
+		return (this.receivedItem != null);
 	}
 
 	private boolean returnCompletion() throws IOException {
@@ -120,13 +122,13 @@ public abstract class AbstractActiveSource<T> implements ActiveSource<T> {
 	}
 
 	@SuppressWarnings("unchecked")
-	private void setNextItem(Object item) throws IOException {
+	private void setReceivedItem(Object item) throws IOException {
 		if (item instanceof Completion c) {
 			this.completion = c;
 			c.throwIfCompletedExceptionally();
 		}
 		else {
-			this.nextItem = (T) item;
+			this.receivedItem = (T) item;
 		}
 	}
 
@@ -138,11 +140,11 @@ public abstract class AbstractActiveSource<T> implements ActiveSource<T> {
 
 	@Override
 	public T next() {
-		T item = this.nextItem;
+		T item = this.receivedItem;
 		if (item == null) {
 			throw new IllegalStateException("No received event");
 		}
-		this.nextItem = null;
+		this.receivedItem = null;
 		return item;
 	}
 
@@ -160,10 +162,13 @@ public abstract class AbstractActiveSource<T> implements ActiveSource<T> {
 
 	@Override
 	public String toString() {
-		return getClass().getSimpleName() + " for " + this.source.toString();
+		return getClass().getSimpleName() + " for " + this.delegate.toString();
 	}
 
 
+	/**
+	 * Represents the completion of the receiver task.
+	 */
 	private record Completion(@Nullable Throwable exception) {
 
 		public void throwIfCompletedExceptionally() throws IOException {
@@ -180,16 +185,16 @@ public abstract class AbstractActiveSource<T> implements ActiveSource<T> {
 
 
 	/**
-	 * Task that receives from the target Source, and puts items into the BlockingQueue.
+	 * Receive items from the delegate Source, and put them in the BlockingQueue.
 	 */
 	private class ReceiveTask implements Callable<Void> {
 
 		@Override
 		public Void call() throws Exception {
-			try (source) {
+			try (delegate) {
 				try {
-					while (source.receiveNext()) {
-						queue.put(source.next());
+					while (delegate.receiveNext()) {
+						queue.put(delegate.next());
 					}
 					complete(null);
 				}

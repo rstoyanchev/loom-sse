@@ -10,7 +10,10 @@ import org.jspecify.annotations.Nullable;
 
 import org.springframework.util.Assert;
 
-public class ExecutorActiveSource<T> extends AbstractActiveSource<T> {
+/**
+ * ActiveSource that uses {@link ExecutorService} to execute the receiver task.
+ */
+public class ExecutorServiceActiveSource<T> extends AbstractActiveSource<T> {
 
 	private final ExecutorService executorService;
 
@@ -19,7 +22,7 @@ public class ExecutorActiveSource<T> extends AbstractActiveSource<T> {
 	private final CountDownLatch receiverLatch = new CountDownLatch(1);
 
 
-	private ExecutorActiveSource(Source<T> source) {
+	private ExecutorServiceActiveSource(Source<T> source) {
 		super(source);
 		this.executorService = Executors.newVirtualThreadPerTaskExecutor();
 	}
@@ -50,8 +53,8 @@ public class ExecutorActiveSource<T> extends AbstractActiveSource<T> {
 	}
 
 
-	public static <T> ExecutorActiveSource<T> from(Source<T> source) {
-		return new ExecutorActiveSource<>(source);
+	public static <T> ExecutorServiceActiveSource<T> from(Source<T> source) {
+		return new ExecutorServiceActiveSource<>(source);
 	}
 
 }

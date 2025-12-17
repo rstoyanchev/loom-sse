@@ -17,7 +17,7 @@ public interface Source<T> extends AutoCloseable {
 	 * Trigger receiving and block if necessary until at least one item is received.
 	 * If {@code true}, {@link #next()} will return an item.
 	 * @return {@code true} if at least one item was successfully received;
-	 * {@code false} if no more values can be received.
+	 * {@code false} if no more items can be received.
 	 */
 	boolean receiveNext() throws IOException, InterruptedException;
 

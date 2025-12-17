@@ -1,9 +1,6 @@
 package source;
 
 import java.io.IOException;
-import java.time.Duration;
-
-import org.jspecify.annotations.Nullable;
 
 /**
  * Contract to consume items from a source.
@@ -12,25 +9,23 @@ import org.jspecify.annotations.Nullable;
 public interface Source<T> extends AutoCloseable {
 
 	/**
-	 * Return {@code true} if the Source is closed. This may be due to a call to
-	 * {@link #close()} from the receiving side, or because the Source itself
-	 * completed, possibly with an {@link #getCompletionException() error}.
+	 * Return {@code true} if the Source is closed, and can no longer receive.
 	 */
 	boolean isClosed();
 
 	/**
-	 * If the Source completed due to an Exception, this method provides access
-	 * to that Exception.
-	 * @return the Exception that caused the Source to end, or {@code null} if
-	 * the Source completed with success, or has not yet completed.
+	 * Trigger receiving and block if necessary until at least one item is received.
+	 * If {@code true}, {@link #next()} will return an item.
+	 * @return {@code true} if at least one item was successfully received;
+	 * {@code false} if no more values can be received.
 	 */
-	@Nullable Throwable getCompletionException();
+	boolean receiveNext() throws IOException, InterruptedException;
 
 	/**
-	 * Receive the next item, blocking if necessary.
-	 * @return the received item, or {@code null} if the Source completed without an item.
+	 * Return the next received item. Use this only after a preceding call to
+	 * {@link #receiveNext()} that returns {@code true}.
 	 */
-	@Nullable T receive() throws IOException, ClosedException, InterruptedException;
+	T next();
 
 	/**
 	 * Close the Source from the receiving side.

@@ -92,9 +92,9 @@ public abstract class AbstractActiveProducer<T> implements ActiveProducer<T> {
 		}
 
 		@Override
-		public @Nullable T receive() throws IOException, ClosedException, InterruptedException {
+		public boolean receiveNext() throws IOException, InterruptedException {
 			try {
-				return this.delegate.receive();
+				return this.delegate.receiveNext();
 			}
 			catch (InterruptedException ex) {
 				stop();
@@ -103,9 +103,9 @@ public abstract class AbstractActiveProducer<T> implements ActiveProducer<T> {
 		}
 
 		@Override
-		public @Nullable T tryReceive(Duration timeout) throws IOException, ClosedException, InterruptedException {
+		public boolean tryReceiveNext(Duration timeout) throws IOException, InterruptedException {
 			try {
-				return this.delegate.tryReceive(timeout);
+				return this.delegate.tryReceiveNext(timeout);
 			}
 			catch (InterruptedException ex) {
 				stop();
@@ -132,13 +132,13 @@ public abstract class AbstractActiveProducer<T> implements ActiveProducer<T> {
 		}
 
 		@Override
-		public @Nullable Throwable getCompletionException() {
-			return this.delegate.getCompletionException();
+		public boolean tryReceiveNext() throws IOException {
+			return this.delegate.tryReceiveNext();
 		}
 
 		@Override
-		public @Nullable T tryReceive() throws IOException, ClosedException {
-			return this.delegate.tryReceive();
+		public T next() {
+			return this.delegate.next();
 		}
 	}
 

@@ -34,12 +34,8 @@ public class ClientApp {
 		try (ServerSentEventSource<String> source =
 					 client.get().uri("/sse").exchangeForRequiredValue(ServerSentEventSource::new, false)) {
 
-			while (true) {
-				ServerSentEvent<String> event = source.receive();
-				if (event == null) {
-					logger.info("No more events");
-					break;
-				}
+			while (source.receiveNext()) {
+				ServerSentEvent<String> event = source.next();
 				logger.info("Got " + event);
 			}
 		}
@@ -50,17 +46,13 @@ public class ClientApp {
 		try (BufferedSource<ServerSentEvent<String>> source =
 					 client.get().uri("/sse").exchangeForRequiredValue(toBufferedSource(), false)) {
 
-			while (true) {
-				ServerSentEvent<String> event = source.tryReceive(Duration.ofSeconds(2));
-				if (event == null) {
-					if (source.isClosed()) {
-						logger.info("Source closed");
-						break;
-					}
-					logger.info("Timed out waiting for event");
-					continue;
+			while (!source.isClosed()) {
+				if (source.tryReceiveNext(Duration.ofSeconds(2))) {
+					logger.info("Got " + source.next());
 				}
-				logger.info("Got " + event);
+				else {
+					logger.info("Timed out");
+				}
 			}
 		}
 	}
@@ -70,9 +62,14 @@ public class ClientApp {
 		try (BufferedSource<ServerSentEvent<String>> source =
 					 client.get().uri("/sse").exchangeForRequiredValue(toBufferedSource(), false)) {
 
-			ServerSentEvent<String> event = source.tryReceive(Duration.ofSeconds(2));
-			logger.info("Got " + event);
+			if (source.tryReceiveNext(Duration.ofSeconds(2))) {
+				logger.info("Got " + source.next());
+			}
+			else {
+				logger.info("Timed out");
+			}
 
+			// Exit try-with-resources after 3 seconds
 			Thread.sleep(1000);
 		}
 	}

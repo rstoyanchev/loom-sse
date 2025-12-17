@@ -11,7 +11,6 @@ import java.util.function.Function;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
-import source.ClosedException;
 import source.Source;
 
 import org.springframework.core.ResolvableType;
@@ -38,7 +37,9 @@ public class ServerSentEventSource<T> implements Source<ServerSentEvent<T>> {
 
 	private final BufferedReader reader;
 
-	private volatile Object closure;
+	private @Nullable ServerSentEvent<T> receivedEvent;
+
+	private volatile Object closure; // Boolean.TRUE | IOException | RuntimeException
 
 
 	public ServerSentEventSource(HttpRequest request, ClientHttpResponse response) throws IOException {
@@ -65,16 +66,17 @@ public class ServerSentEventSource<T> implements Source<ServerSentEvent<T>> {
 		return (this.closure != null);
 	}
 
-	@Override
-	public @Nullable Throwable getCompletionException() {
-		return ((this.closure instanceof Throwable ex) ? ex : null);
-	}
-
-
 	@SuppressWarnings("unchecked")
 	@Override
-	public ServerSentEvent<T> receive() throws IOException, ClosedException, InterruptedException {
-		assertNotClosed();
+	public boolean receiveNext() throws IOException {
+		if (this.closure != null) {
+			return switch (this.closure) {
+				case IOException ex -> throw ex;
+				case RuntimeException ex -> throw ex;
+				case Throwable ex -> throw wrapException(ex);
+				default -> false;
+			};
+		}
 		logger.info("In receive()...");
 		try {
 			ServerSentEvent.Builder<T> eventBuilder = ServerSentEvent.builder();
@@ -90,7 +92,7 @@ public class ServerSentEventSource<T> implements Source<ServerSentEvent<T>> {
 					if (!empty) {
 						throw new EOFException("Partial event: " + eventBuilder.build());
 					}
-					return null;
+					return false;
 				}
 
 				// End of event
@@ -107,7 +109,8 @@ public class ServerSentEventSource<T> implements Source<ServerSentEvent<T>> {
 					}
 					ServerSentEvent<T> event = eventBuilder.data(t).build();
 					logger.info("Received " + event);
-					return event;
+					this.receivedEvent = event;
+					return true;
 				}
 
 				// Ignore line
@@ -137,18 +140,37 @@ public class ServerSentEventSource<T> implements Source<ServerSentEvent<T>> {
 				}
 			}
 		}
-		catch (Throwable ex) {
-			close(ex);
+		catch (IOException | RuntimeException ex) {
+			closeInternal(ex);
 			throw ex;
 		}
+		catch (Throwable ex) {
+			IllegalStateException wrapped = wrapException(ex);
+			closeInternal(wrapped);
+			throw wrapped;
+		}
+	}
+
+	private static IllegalStateException wrapException(Throwable ex) {
+		return new IllegalStateException("Unexpected exception", ex);
+	}
+
+	@Override
+	public ServerSentEvent<T> next() {
+		ServerSentEvent<T> event = this.receivedEvent;
+		if (event == null) {
+			throw new IllegalStateException("No received event");
+		}
+		this.receivedEvent = null;
+		return event;
 	}
 
 	@Override
 	public void close() {
-		close(Boolean.TRUE);
+		closeInternal(Boolean.TRUE);
 	}
 
-	private void close(Object closure) {
+	private void closeInternal(Object closure) {
 		if (this.closure != null) {
 			return;
 		}
@@ -156,14 +178,9 @@ public class ServerSentEventSource<T> implements Source<ServerSentEvent<T>> {
 		logger.info("Closed" + (this.closure instanceof Throwable ex ? ": " + ex : ""));
 	}
 
-	private void assertNotClosed() {
-		if (isClosed()) {
-			throw new ClosedException(this);
-		}
-	}
-
 	@Override
 	public String toString() {
 		return "ServerSentEventSource[\"" + this.request.getURI() + "\"]";
 	}
+
 }

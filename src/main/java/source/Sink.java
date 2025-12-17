@@ -10,23 +10,15 @@ import java.time.Duration;
 public interface Sink<T> {
 
 	/**
-	 * Return {@code true} if the sink is complete, and it is no longer possible
-	 * to send. This can be either due to calls to {@link #complete} or
-	 * {@link #completeExceptionally} from the sending side, or because the
-	 * {@code Sink} itself was closed.
-	 */
-	boolean isComplete();
-
-	/**
 	 * Send or block until an item can be sent.
 	 */
-	void send(T item) throws IOException, ClosedException, InterruptedException;
+	void send(T item) throws IOException, InterruptedException;
 
 	/**
 	 * Try to send the item, blocking for up to the specified duration.
 	 * @return {@code true} if the item was sent, {@code false} otherwise
 	 */
-	boolean trySend(T item, Duration timeout) throws ClosedException, InterruptedException;
+	boolean trySend(T item, Duration timeout) throws InterruptedException;
 
 	/**
 	 * Try to send the item without blocking.

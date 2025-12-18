@@ -12,10 +12,9 @@ import org.apache.logging.log4j.Logger;
 import org.jspecify.annotations.Nullable;
 
 /**
- * Abstract base class for {@link ActiveSource} implementations.
- *
- * <p>Provides most of the implementation, by receiving from the delegate Source
- * and pushing into a {@link BlockingQueue}. Subclasses are implement methods to
+ * Abstract base class for an {@link ActiveSource}. It provides most of the
+ * implementation, receiving from the delegate Source and pushing into a
+ * {@link BlockingQueue}. Subclasses implement methods to
  * {@link #start(Callable) start} and {@link #stop() stop} the receiver task.
  */
 public abstract class AbstractActiveSource<T> implements ActiveSource<T> {

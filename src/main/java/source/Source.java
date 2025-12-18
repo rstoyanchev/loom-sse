@@ -9,10 +9,16 @@ import java.io.IOException;
 public interface Source<T> extends AutoCloseable {
 
 	/**
-	 * Trigger receiving and block if necessary until at least one item is received.
-	 * If {@code true}, {@link #next()} will return an item.
-	 * @return {@code true} if at least one item was successfully received;
-	 * {@code false} if no more items can be received.
+	 * Request to receive the next item from the Source.
+	 * <ul>
+	 * <li>For direct {@link Source} implementations, this triggers receiving,
+	 * and blocks until at least one item is received.
+	 * <li>For {@link ActiveSource} implementations with an active receiver task
+	 * this method waits until an item appears in the {@code BlockingQueue}.
+	 * </ul>
+	 * A return value of {@code true} guarantees {@link #next()} will return an
+	 * item, while {@code false} means the Source will not return more items.
+	 * @return {@code true} if there at least one received item
 	 */
 	boolean receiveNext() throws IOException, InterruptedException;
 

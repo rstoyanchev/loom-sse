@@ -5,7 +5,6 @@ import java.time.Duration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import source.ActiveSource;
-import source.ExecutorServiceActiveSource;
 import source.StructuredActiveSource;
 
 import org.springframework.http.codec.ServerSentEvent;
@@ -14,6 +13,8 @@ import org.springframework.web.client.RestClient;
 public class ClientApp {
 
 	private final static Logger logger =  LogManager.getLogger(ClientApp.class);
+
+	private final static RestClient client = RestClient.create("http://localhost:8080");
 
 
 	static void main(String[] args) throws Exception {
@@ -47,7 +48,7 @@ public class ClientApp {
 					logger.info("Got " + source.next());
 				}
 				else {
-					logger.info("Timed out, try again");
+					logger.info("Timed out, trying again");
 				}
 			}
 		}
@@ -100,17 +101,14 @@ public class ClientApp {
 	}
 
 	private static ActiveSource<ServerSentEvent<String>> performSseRequest(String path) {
-		return RestClient.create().get().uri("http://localhost:8080" + path)
-				.exchangeForRequiredValue((request, response) -> {
-					if (response.getStatusCode().isError()) {
-						throw response.createException();
-					}
+		return client.get().uri(path).exchangeForRequiredValue((request, response) -> {
+			if (response.getStatusCode().isError()) {
+				throw response.createException();
+			}
+			ServerSentEventSource<String> source = new ServerSentEventSource<>(request.getURI(), response.getBody());
+			return StructuredActiveSource.from(source); // or use ExecutorServiceActiveSource
 
-					ServerSentEventSource<String> source =
-							new ServerSentEventSource<>(request.getURI(), response.getBody());
-
-					return StructuredActiveSource.from(source); // or use ExecutorServiceActiveSource
-				}, false);
+		}, false);
 	}
 
 }

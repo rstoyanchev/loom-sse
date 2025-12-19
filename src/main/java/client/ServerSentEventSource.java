@@ -3,7 +3,9 @@ package client;
 import java.io.BufferedReader;
 import java.io.EOFException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.function.Function;
@@ -14,9 +16,7 @@ import org.jspecify.annotations.Nullable;
 import source.Source;
 
 import org.springframework.core.ResolvableType;
-import org.springframework.http.HttpRequest;
 import org.springframework.http.MediaType;
-import org.springframework.http.client.ClientHttpResponse;
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.http.converter.HttpMessageConverters;
 import org.springframework.util.StringUtils;
@@ -27,7 +27,9 @@ public class ServerSentEventSource<T> implements Source<ServerSentEvent<T>> {
 	private static final Logger logger = LogManager.getLogger(ServerSentEventSource.class);
 
 
-	private final HttpRequest request;
+	private final URI url;
+
+	private final BufferedReader reader;
 
 	private final HttpMessageConverterDelegate converterDelegate;
 
@@ -35,29 +37,25 @@ public class ServerSentEventSource<T> implements Source<ServerSentEvent<T>> {
 
 	private final Function<String, MediaType> contentTypeResolver;
 
-	private final BufferedReader reader;
-
 	private @Nullable ServerSentEvent<T> receivedEvent;
 
 	private volatile Object closure; // Boolean.TRUE | IOException | RuntimeException
 
 
-	public ServerSentEventSource(HttpRequest request, ClientHttpResponse response) throws IOException {
-		this(request, response, HttpMessageConverters.forClient().build(),
+	public ServerSentEventSource(URI url, InputStream inputStream) throws IOException {
+		this(url, inputStream, HttpMessageConverters.forClient().build(),
 				_ -> ResolvableType.forClass(String.class), _ -> MediaType.TEXT_PLAIN);
 	}
 
 	public ServerSentEventSource(
-			HttpRequest request, ClientHttpResponse response,
-			HttpMessageConverters converters,
-			Function<String, ResolvableType> typeResolver,
-			Function<String, MediaType> contentTypeResolver) throws IOException {
+			URI url, InputStream responseBody, HttpMessageConverters converters,
+			Function<String, ResolvableType> typeResolver, Function<String, MediaType> contentTypeResolver) {
 
-		this.request = request;
+		this.url = url;
+		this.reader = new BufferedReader(new InputStreamReader(responseBody, StandardCharsets.UTF_8));
 		this.converterDelegate = new HttpMessageConverterDelegate(converters);
 		this.typeResolver = typeResolver;
 		this.contentTypeResolver = contentTypeResolver;
-		this.reader = new BufferedReader(new InputStreamReader(response.getBody(), StandardCharsets.UTF_8));
 	}
 
 
@@ -175,7 +173,7 @@ public class ServerSentEventSource<T> implements Source<ServerSentEvent<T>> {
 
 	@Override
 	public String toString() {
-		return "ServerSentEventSource[\"" + this.request.getURI() + "\"]";
+		return "ServerSentEventSource[\"" + this.url + "\"]";
 	}
 
 }

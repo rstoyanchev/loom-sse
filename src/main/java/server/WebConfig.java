@@ -34,7 +34,7 @@ public class WebConfig implements WebMvcConfigurer {
 
 	@Override
 	public void configureAsyncSupport(AsyncSupportConfigurer configurer) {
-		configurer.setTaskExecutor(new VirtualThreadTaskExecutor());
+		configurer.setTaskExecutor(new VirtualThreadTaskExecutor("spring-mvc-"));
 	}
 
 }

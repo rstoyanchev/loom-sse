@@ -5,11 +5,11 @@ import java.time.Duration;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import source.ActiveSource;
+import source.ExecutorServiceActiveSource;
 import source.StructuredActiveSource;
 
 import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.web.client.RestClient;
-import org.springframework.web.client.RestClient.RequestHeadersSpec.RequiredValueExchangeFunction;
 
 public class ClientApp {
 
@@ -17,29 +17,19 @@ public class ClientApp {
 
 
 	static void main(String[] args) throws Exception {
-
-		RestClient client = RestClient.create("http://localhost:8080");
-
-		runSourceWithReceive(client);
-//		runSourceWithTryReceive(client);
-
-//		closeSource(client);
-//		sourceCompletes(client);
-//		sourceCompletesWithError(client);
-
-		logger.info("Exiting");
-		System.exit(0);
+		receiveScenario();
+//		tryReceiveScenario();
+//		closeSourceScenario();
+//		sourceCompletesScenario();
+//		sourceCompletesWithErrorScenario();
 	}
 
 
 	/**
-	 * Receive from an ActiveSource in a loop.
+	 * Receive in a loop.
 	 */
-	private static void runSourceWithReceive(RestClient client) throws Exception {
-
-		try (ActiveSource<ServerSentEvent<String>> source =
-					 client.get().uri("/sse").exchangeForRequiredValue(toActiveSource(), false)) {
-
+	private static void receiveScenario() throws Exception {
+		try (ActiveSource<ServerSentEvent<String>> source = performSseRequest("/sse")) {
 			while (source.receiveNext()) {
 				ServerSentEvent<String> event = source.next();
 				logger.info("Got " + event);
@@ -48,66 +38,50 @@ public class ClientApp {
 	}
 
 	/**
-	 * Receive via ActiveSource with tryReceiveNext.
+	 * Use tryReceive with a timeout that returns control.
 	 */
-	private static void runSourceWithTryReceive(RestClient client) throws Exception {
-
-		try (ActiveSource<ServerSentEvent<String>> source =
-					 client.get().uri("/sse").exchangeForRequiredValue(toActiveSource(), false)) {
-
+	private static void tryReceiveScenario() throws Exception {
+		try (ActiveSource<ServerSentEvent<String>> source = performSseRequest("/sse")) {
 			while (!source.isClosed()) {
 				if (source.tryReceiveNext(Duration.ofSeconds(2))) {
 					logger.info("Got " + source.next());
 				}
 				else {
-					logger.info("Timed out");
+					logger.info("Timed out, try again");
 				}
 			}
 		}
 	}
 
 	/**
-	 * The closing of an ActiveSource should stop the receiver subtask.
+	 * Closing the Source from the receiving side stops the receiver subtask.
 	 */
-	private static void closeSource(RestClient client) throws Exception {
-
-		try (ActiveSource<ServerSentEvent<String>> source =
-					 client.get().uri("/sse").exchangeForRequiredValue(toActiveSource(), false)) {
-
+	private static void closeSourceScenario() throws Exception {
+		try (ActiveSource<ServerSentEvent<String>> source = performSseRequest("/sse")) {
 			if (source.tryReceiveNext(Duration.ofSeconds(2))) {
 				logger.info("Got " + source.next());
 			}
 			else {
 				logger.info("Timed out");
 			}
-
-			// Exit try-with-resources after 3 seconds
-			Thread.sleep(1000);
 		}
 	}
 
 	/**
 	 * Completion of the receiver subtask should unblock receivers.
 	 */
-	private static void sourceCompletes(RestClient client) throws Exception {
-
-		try (ActiveSource<ServerSentEvent<String>> source =
-					 client.get().uri("/sse-complete-empty").exchangeForRequiredValue(toActiveSource(), false)) {
-
+	private static void sourceCompletesScenario() throws Exception {
+		try (ActiveSource<ServerSentEvent<String>> source = performSseRequest("/sse-complete-empty")) {
 			boolean result = source.receiveNext();
 			logger.info("Got " + result);
 		}
 	}
 
-
 	/**
-	 * Completion of the receiver subtask should unblock receivers.
+	 * Completion of the receiver subtask with an error should propagate to blocked receivers.
 	 */
-	private static void sourceCompletesWithError(RestClient client) throws Exception {
-
-		try (ActiveSource<ServerSentEvent<String>> source =
-					 client.get().uri("/sse-complete-with-error").exchangeForRequiredValue(toActiveSource(), false)) {
-
+	private static void sourceCompletesWithErrorScenario() throws Exception {
+		try (ActiveSource<ServerSentEvent<String>> source = performSseRequest("/sse-complete-with-error")) {
 			if (source.receiveNext()) {
 				logger.info("Got " + source.next());
 			}
@@ -125,16 +99,18 @@ public class ClientApp {
 		}
 	}
 
-	private static RequiredValueExchangeFunction<ActiveSource<ServerSentEvent<String>>> toActiveSource() {
-		return (request, response) -> {
-			if (response.getStatusCode().isError()) {
-				throw response.createException();
-			}
-			ServerSentEventSource<String> source = new ServerSentEventSource<>(request, response);
-			StructuredActiveSource<ServerSentEvent<String>> activeSource = StructuredActiveSource.from(source);
-//			ExecutorServiceActiveSource<ServerSentEvent<String>> activeSource = ExecutorServiceActiveSource.from(source);
-			return activeSource;
-		};
+	private static ActiveSource<ServerSentEvent<String>> performSseRequest(String path) {
+		return RestClient.create().get().uri("http://localhost:8080" + path)
+				.exchangeForRequiredValue((request, response) -> {
+					if (response.getStatusCode().isError()) {
+						throw response.createException();
+					}
+
+					ServerSentEventSource<String> source =
+							new ServerSentEventSource<>(request.getURI(), response.getBody());
+
+					return StructuredActiveSource.from(source); // or use ExecutorServiceActiveSource
+				}, false);
 	}
 
 }

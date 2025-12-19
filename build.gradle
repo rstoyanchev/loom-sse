@@ -26,19 +26,21 @@ repositories {
 }
 
 dependencies {
-	implementation 'org.springframework.boot:spring-boot-starter-restclient'
+	implementation 'org.apache.tomcat.embed:tomcat-embed-core:11.0.12'
+	implementation 'jakarta.servlet:jakarta.servlet-api:6.1.0'
+
+	implementation 'org.springframework:spring-context'
+	implementation 'org.springframework:spring-web'
+	implementation 'org.springframework:spring-webmvc'
 
 	implementation("org.apache.httpcomponents.client5:httpclient5:5.5")
 	implementation("org.apache.httpcomponents.core5:httpcore5-reactive:5.3.4")
 //	implementation('org.eclipse.jetty:jetty-reactive-httpclient:4.0.9')
 //	implementation("io.projectreactor.netty:reactor-netty-http:1.2.9")
 
-	implementation 'org.apache.tomcat.embed:tomcat-embed-core:11.0.9'
-	implementation 'jakarta.servlet:jakarta.servlet-api:6.1.0'
-	implementation 'org.springframework:spring-context'
-	implementation 'org.springframework:spring-web'
-	implementation 'org.springframework:spring-webmvc'
-	implementation 'io.projectreactor:reactor-core:3.7.8'
+	implementation 'org.apache.logging.log4j:log4j-api:2.25.2'
+	implementation 'org.apache.logging.log4j:log4j-core:2.25.2'
+	implementation 'org.apache.logging.log4j:log4j-slf4j2-impl:2.25.2'
 
 	testImplementation 'org.junit.jupiter:junit-jupiter'
 }

@@ -72,7 +72,7 @@ public class ServerSentEventSource<T> implements Source<ServerSentEvent<T>> {
 				default -> false;
 			};
 		}
-		logger.info("In receive()...");
+		logger.debug("In receive()...");
 		try {
 			ServerSentEvent.Builder<T> eventBuilder = ServerSentEvent.builder();
 			StringBuilder sb = new StringBuilder();
@@ -82,7 +82,7 @@ public class ServerSentEventSource<T> implements Source<ServerSentEvent<T>> {
 			while (true) {
 				String line = this.reader.readLine();
 				if (line == null) {
-					logger.info("End of input stream");
+					logger.debug("End of input stream");
 					close();
 					if (!empty) {
 						throw new EOFException("Partial event: " + eventBuilder.build());
@@ -103,7 +103,7 @@ public class ServerSentEventSource<T> implements Source<ServerSentEvent<T>> {
 								sb.toString().getBytes(StandardCharsets.UTF_8), targetType, contentType);
 					}
 					ServerSentEvent<T> event = eventBuilder.data(t).build();
-					logger.info("Received " + event);
+					logger.debug("Received " + event);
 					this.receivedEvent = event;
 					return true;
 				}
@@ -170,7 +170,7 @@ public class ServerSentEventSource<T> implements Source<ServerSentEvent<T>> {
 			return;
 		}
 		this.closure = closure;
-		logger.info("Closed" + (this.closure instanceof Throwable ex ? ": " + ex : ""));
+		logger.debug("Closed" + (this.closure instanceof Throwable ex ? ": " + ex : ""));
 	}
 
 	@Override

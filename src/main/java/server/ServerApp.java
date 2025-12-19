@@ -11,7 +11,7 @@ import org.springframework.web.servlet.DispatcherServlet;
 
 public class ServerApp {
 
-	public static void main(String[] args) throws Exception {
+	static void main(String[] args) throws Exception {
 
 		File base = new File(System.getProperty("java.io.tmpdir"));
 

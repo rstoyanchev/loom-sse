@@ -1,7 +1,6 @@
 package source;
 
 import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.StructuredTaskScope;
 
 /**
@@ -14,7 +13,9 @@ public class StructuredActiveSource<T> extends AbstractActiveSource<T> {
 
 	public StructuredActiveSource(Source<T> source) {
 		super(source);
-		this.scope = StructuredTaskScope.open(StructuredTaskScope.Joiner.anySuccessfulResultOrThrow());
+		this.scope = StructuredTaskScope.open(
+				StructuredTaskScope.Joiner.anySuccessfulResultOrThrow(),
+				config -> config.withThreadFactory(Thread.ofVirtual().name("active-source-", 0).factory()));
 	}
 
 

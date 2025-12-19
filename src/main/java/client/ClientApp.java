@@ -2,8 +2,8 @@ package client;
 
 import java.time.Duration;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import source.ActiveSource;
 import source.StructuredActiveSource;
 
@@ -13,7 +13,7 @@ import org.springframework.web.client.RestClient.RequestHeadersSpec.RequiredValu
 
 public class ClientApp {
 
-	private final static Log logger =  LogFactory.getLog(ClientApp.class);
+	private final static Logger logger =  LogManager.getLogger(ClientApp.class);
 
 
 	static void main(String[] args) throws Exception {
